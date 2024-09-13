@@ -157,10 +157,12 @@ class atlas {
         return await this.render(`${kind}/${kind}`, {
             ...data,
             waitUntil: 'networkidle0',
-            htmlScale: Config.getDefOrConfig('config', 'b19size') / 100,
+            // htmlScale: Config.getDefOrConfig('config', 'b19size') / 100,
+            htmlScale: Config.getDefOrConfig('config', 'b19size') / 10,
         }, {
             e,
-            scale: Config.getDefOrConfig('config', 'renderScale') / 100,
+            // scale: Config.getDefOrConfig('config', 'renderScale') / 100,
+            scale: Config.getDefOrConfig('config', 'renderScale') / 10,
         })
     }
 

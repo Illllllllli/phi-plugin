@@ -39,14 +39,15 @@ class send {
      */
     async getsave_result(e, ver) {
 
-        const sessionToken = await getSave.get_user_token(e.user_id)
+        // const sessionToken = await getSave.get_user_token(e.user_id)
 
-        const user_save = await getSave.getSave(e.user_id)
+        // const user_save = await getSave.getSave(e.user_id)
 
-        if (!sessionToken) {
-            this.send_with_At(e, `请先绑定sessionToken哦！\n帮助：/${Config.getDefOrConfig('config', 'cmdhead')} tk help\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} bind <sessionToken>`)
-            return false
-        }
+        // if (!sessionToken) {
+        //     this.send_with_At(e, `请先绑定sessionToken哦！\n帮助：/${Config.getDefOrConfig('config', 'cmdhead')} tk help\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} bind <sessionToken>`)
+        //     return false
+        // }
+
 
         if (!user_save || (ver && (!user_save.Recordver || user_save.Recordver < ver))) {
             this.send_with_At(e, `请先更新数据哦！\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} update`)
