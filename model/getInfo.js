@@ -9,232 +9,72 @@ import { Level } from './constNum.js'
 
 export default new class getInfo {
     constructor() {
-
-        /**之前改过一次名称，修正别名 */
-        readFile.FileReader(path.join(configPath, 'nickconfig.yaml'), "TXT").then((nick) => {
-            if (nick) {
-                const waitToReplace = {
-                    "Winter↑cube↓": "Winter ↑cube↓",
-                    "Cipher: /2&//<|0": "Cipher : /2&//<|0",
-                    "NYA!!!(Phigros ver.)": "NYA!!! (Phigros ver.)",
-                    "JunXion Between Life And Death(VIP Mix)": "JunXion Between Life And Death(VIP Mix)",
-                    "Dash from SOUL NOTES": "Dash",
-                    "Drop It from SOUL NOTES": "Drop It",
-                    "Diamond Eyes from SOUL NOTES": "Diamond Eyes",
-                }
-                let flag = false
-                for (let i in waitToReplace) {
-                    if (nick.includes(i)) {
-                        flag = true
-                        nick = nick.replace(i, waitToReplace[i])
-                    }
-                }
-                if (flag) {
-                    readFile.SetFile(path.join(configPath, 'nickconfig.yaml'), nick, "TXT")
-                    logger.mark('[phi-plugin]自动修正别名')
-                }
-            }
-        })
-
-        /**默认别名 */
-        readFile.FileReader(path.join(infoPath, 'nicklist.yaml')).then((nicklist) => {
-            /**以曲名为key */
-            this.nicklist = nicklist
-            /**以别名为key */
-            this.songnick = {}
-            for (let i in nicklist) {
-                for (let j in nicklist[i]) {
-                    if (this.songnick[nicklist[i][j]]) {
-                        this.songnick[nicklist[i][j]].push(i)
-                    } else {
-                        this.songnick[nicklist[i][j]] = [i]
-                    }
-                }
-            }
-        })
-
-
-
-        /**扩增曲目信息 */
-        this.DLC_Info = {}
-        let files = fs.readdirSync(DlcInfoPath).filter(file => file.endsWith('.json'))
-        files.forEach((file) => {
-            this.DLC_Info[path.basename(file, '.json')] = readFile.FileReader(path.join(DlcInfoPath, file))
-        })
-
-
-
-        /**头像id */
-        readFile.FileReader(path.join(infoPath, 'avatar.csv')).then((csv_avatar) => {
-            this.avatarid = {}
-            for (let i in csv_avatar) {
-                this.avatarid[csv_avatar[i].id] = csv_avatar[i].name
-            }
-        })
-
-        /**Tips */
-        this.tips = readFile.FileReader(path.join(infoPath, 'tips.json'))
-
-
-        /**原版信息 */
-        this.ori_info = {}
-        /**通过id获取曲名 */
-        this.songsid = {}
-        /**原曲名称获取id */
-        this.idssong = {}
-        /**含有曲绘的曲目列表，原曲名称 */
-        this.illlist = []
-
-        /**自定义信息 */
-        let user_song = Config.getDefOrConfig('otherinfo')
-        if (Config.getDefOrConfig('config', 'otherinfo')) {
-            for (let i in user_song) {
-                if (user_song[i]['illustration_big']) {
-                    this.illlist.push(user_song[i].song)
-                }
-            }
-        }
-
-        /**SP信息 */
-        readFile.FileReader(path.join(infoPath, 'spinfo.json')).then((info) => {
-            this.sp_info = info
-            for (let i in info) {
-                if (info[i]['illustration_big']) {
-                    this.illlist.push(info[i].song)
-                }
-            }
-        })
-
-
-        /**难度映射 */
-        this.Level = Level
-
-        /**最高定数 */
-        this.MAX_DIFFICULTY = 0
-
-        /**所有曲目曲名列表 */
-        this.songlist = []
-
-        /**信息文件 */
-        readFile.FileReader(path.join(infoPath, 'info.csv')).then((CsvInfo) => {
-            readFile.FileReader(path.join(infoPath, 'difficulty.csv')).then((Csvdif) => {
-                readFile.FileReader(path.join(infoPath, 'infolist.json')).then((Jsoninfo) => {
-                    // console.info(CsvInfo, Csvdif, Jsoninfo)
-                    for (let i in CsvInfo) {
-                        switch (CsvInfo[i].id) {
-                            case 'AnotherMe.DAAN': {
-                                CsvInfo[i].song = 'Another Me (KALPA)';
-                                break;
-                            }
-                            case 'AnotherMe.NeutralMoon': {
-                                CsvInfo[i].song = 'Another Me (Rising Sun Traxx)';
-                                break;
-                            }
-                            default: {
-                                break;
-                            }
-                        }
-                        this.songsid[CsvInfo[i].id + '.0'] = CsvInfo[i].song
-                        this.idssong[CsvInfo[i].song] = CsvInfo[i].id + '.0'
-
-                        this.ori_info[CsvInfo[i].song] = Jsoninfo[CsvInfo[i].id]
-                        if (!this.ori_info[CsvInfo[i].song]) {
-                            /**illustration_big = 'null'为特殊标记，getill时会返回默认图片 */
-                            this.ori_info[CsvInfo[i].song] = { song: CsvInfo[i].song, illustration_big: 'null', chapter: '', bpm: '', length: '', chart: {} }
-                            logger.mark(`[phi-plugin]曲目详情未更新：${CsvInfo[i].song}`)
-                        }
-                        this.ori_info[CsvInfo[i].song].song = CsvInfo[i].song
-                        this.ori_info[CsvInfo[i].song].id = CsvInfo[i].id
-                        this.ori_info[CsvInfo[i].song].composer = CsvInfo[i].composer
-                        this.ori_info[CsvInfo[i].song].illustrator = CsvInfo[i].illustrator
-                        for (let j in this.Level) {
-                            const level = this.Level[j]
-                            if (CsvInfo[i][level]) {
-                                if (!this.ori_info[CsvInfo[i].song].chart[level]) {
-                                    this.ori_info[CsvInfo[i].song].chart[level] = {}
-                                }
-                                this.ori_info[CsvInfo[i].song].chart[level].charter = CsvInfo[i][level]
-                                this.ori_info[CsvInfo[i].song].chart[level].difficulty = Csvdif[i][level]
-                                /**最高定数 */
-                                this.MAX_DIFFICULTY = Math.max(this.MAX_DIFFICULTY, Number(Csvdif[i][level]))
-                            }
-                        }
-                        this.illlist.push(CsvInfo[i].song)
-                        this.songlist.push(CsvInfo[i].song)
-                    }
-                })
-            })
-        })
-
-
+        this.init()
     }
 
     async init() {
-        
-        /**之前改过一次名称，修正别名 */
-        readFile.FileReader(path.join(configPath, 'nickconfig.yaml'), "TXT").then((nick) => {
-            if (nick) {
-                const waitToReplace = {
-                    "Winter↑cube↓": "Winter ↑cube↓",
-                    "Cipher: /2&//<|0": "Cipher : /2&//<|0",
-                    "NYA!!!(Phigros ver.)": "NYA!!! (Phigros ver.)",
-                    "JunXion Between Life And Death(VIP Mix)": "JunXion Between Life And Death(VIP Mix)",
-                    "Dash from SOUL NOTES": "Dash",
-                    "Drop It from SOUL NOTES": "Drop It",
-                    "Diamond Eyes from SOUL NOTES": "Diamond Eyes",
-                }
-                let flag = false
-                for (let i in waitToReplace) {
-                    if (nick.includes(i)) {
-                        flag = true
-                        nick = nick.replace(i, waitToReplace[i])
-                    }
-                }
-                if (flag) {
-                    readFile.SetFile(path.join(configPath, 'nickconfig.yaml'), nick, "TXT")
-                    logger.mark('[phi-plugin]自动修正别名')
-                }
-            }
-        })
 
-        /**默认别名 */
-        readFile.FileReader(path.join(infoPath, 'nicklist.yaml')).then((nicklist) => {
-            /**以曲名为key */
-            this.nicklist = nicklist
-            /**以别名为key */
-            this.songnick = {}
-            for (let i in nicklist) {
-                for (let j in nicklist[i]) {
-                    if (this.songnick[nicklist[i][j]]) {
-                        this.songnick[nicklist[i][j]].push(i)
-                    } else {
-                        this.songnick[nicklist[i][j]] = [i]
-                    }
+        /**之前改过一次名称，修正别名 */
+        let nick = await readFile.FileReader(path.join(configPath, 'nickconfig.yaml'), "TXT")
+        if (nick) {
+            const waitToReplace = {
+                "Winter↑cube↓": "Winter ↑cube↓",
+                "Cipher: /2&//<|0": "Cipher : /2&//<|0",
+                "NYA!!!(Phigros ver.)": "NYA!!! (Phigros ver.)",
+                "JunXion Between Life And Death(VIP Mix)": "JunXion Between Life And Death(VIP Mix)",
+                "Dash from SOUL NOTES": "Dash",
+                "Drop It from SOUL NOTES": "Drop It",
+                "Diamond Eyes from SOUL NOTES": "Diamond Eyes",
+            }
+            let flag = false
+            for (let i in waitToReplace) {
+                if (nick.includes(i)) {
+                    flag = true
+                    nick = nick.replace(i, waitToReplace[i])
                 }
             }
-        })
+            if (flag) {
+                readFile.SetFile(path.join(configPath, 'nickconfig.yaml'), nick, "TXT")
+                logger.mark('[phi-plugin]自动修正别名')
+            }
+        }
+
+        /**默认别名,以曲名为key */
+        this.nicklist = await readFile.FileReader(path.join(infoPath, 'nicklist.yaml'))
+        /**以别名为key */
+        this.songnick = {}
+        for (let i in this.nicklist) {
+            for (let j in this.nicklist[i]) {
+                if (this.songnick[this.nicklist[i][j]]) {
+                    this.songnick[this.nicklist[i][j]].push(i)
+                } else {
+                    this.songnick[this.nicklist[i][j]] = [i]
+                }
+            }
+        }
 
 
 
         /**扩增曲目信息 */
         this.DLC_Info = {}
         let files = fs.readdirSync(DlcInfoPath).filter(file => file.endsWith('.json'))
-        files.forEach((file) => {
-            this.DLC_Info[path.basename(file, '.json')] = readFile.FileReader(path.join(DlcInfoPath, file))
+        files.forEach(async (file) => {
+            this.DLC_Info[path.basename(file, '.json')] = await readFile.FileReader(path.join(DlcInfoPath, file))
         })
 
 
 
         /**头像id */
-        readFile.FileReader(path.join(infoPath, 'avatar.csv')).then((csv_avatar) => {
-            this.avatarid = {}
-            for (let i in csv_avatar) {
-                this.avatarid[csv_avatar[i].id] = csv_avatar[i].name
-            }
-        })
+        let csv_avatar = await readFile.FileReader(path.join(infoPath, 'avatar.csv'))
+        this.avatarid = {}
+        for (let i in csv_avatar) {
+            this.avatarid[csv_avatar[i].id] = csv_avatar[i].name
+        }
 
-        /**Tips */
-        this.tips = readFile.FileReader(path.join(infoPath, 'tips.json'))
+        /**
+         * Tips []
+         */
+        this.tips = await readFile.FileReader(path.join(infoPath, 'tips.yaml'))
 
 
         /**原版信息 */
@@ -247,8 +87,8 @@ export default new class getInfo {
         this.illlist = []
 
         /**自定义信息 */
-        let user_song = Config.getDefOrConfig('otherinfo')
-        if (Config.getDefOrConfig('config', 'otherinfo')) {
+        let user_song = Config.getUserCfg('otherinfo')
+        if (Config.getUserCfg('config', 'otherinfo')) {
             for (let i in user_song) {
                 if (user_song[i]['illustration_big']) {
                     this.illlist.push(user_song[i].song)
@@ -257,14 +97,12 @@ export default new class getInfo {
         }
 
         /**SP信息 */
-        readFile.FileReader(path.join(infoPath, 'spinfo.json')).then((info) => {
-            this.sp_info = info
-            for (let i in info) {
-                if (info[i]['illustration_big']) {
-                    this.illlist.push(info[i].song)
-                }
+        this.sp_info = await readFile.FileReader(path.join(infoPath, 'spinfo.json'))
+        for (let i in this.sp_info) {
+            if (this.sp_info[i]['illustration_big']) {
+                this.illlist.push(this.sp_info[i].song)
             }
-        })
+        }
 
 
         /**难度映射 */
@@ -277,55 +115,56 @@ export default new class getInfo {
         this.songlist = []
 
         /**信息文件 */
-        readFile.FileReader(path.join(infoPath, 'info.csv')).then((CsvInfo) => {
-            readFile.FileReader(path.join(infoPath, 'difficulty.csv')).then((Csvdif) => {
-                readFile.FileReader(path.join(infoPath, 'infolist.json')).then((Jsoninfo) => {
-                    // console.info(CsvInfo, Csvdif, Jsoninfo)
-                    for (let i in CsvInfo) {
-                        switch (CsvInfo[i].id) {
-                            case 'AnotherMe.DAAN': {
-                                CsvInfo[i].song = 'Another Me (KALPA)';
-                                break;
-                            }
-                            case 'AnotherMe.NeutralMoon': {
-                                CsvInfo[i].song = 'Another Me (Rising Sun Traxx)';
-                                break;
-                            }
-                            default: {
-                                break;
-                            }
-                        }
-                        this.songsid[CsvInfo[i].id + '.0'] = CsvInfo[i].song
-                        this.idssong[CsvInfo[i].song] = CsvInfo[i].id + '.0'
+        let CsvInfo = await readFile.FileReader(path.join(infoPath, 'info.csv'))
+        let Csvdif = await readFile.FileReader(path.join(infoPath, 'difficulty.csv'))
+        let Jsoninfo = await readFile.FileReader(path.join(infoPath, 'infolist.json'))
+        // console.info(CsvInfo, Csvdif, Jsoninfo)
+        for (let i in CsvInfo) {
+            switch (CsvInfo[i].id) {
+                case 'AnotherMe.DAAN': {
+                    CsvInfo[i].song = 'Another Me (KALPA)';
+                    break;
+                }
+                case 'AnotherMe.NeutralMoon': {
+                    CsvInfo[i].song = 'Another Me (Rising Sun Traxx)';
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            this.songsid[CsvInfo[i].id + '.0'] = CsvInfo[i].song
+            this.idssong[CsvInfo[i].song] = CsvInfo[i].id + '.0'
 
-                        this.ori_info[CsvInfo[i].song] = Jsoninfo[CsvInfo[i].id]
-                        if (!this.ori_info[CsvInfo[i].song]) {
-                            /**illustration_big = 'null'为特殊标记，getill时会返回默认图片 */
-                            this.ori_info[CsvInfo[i].song] = { song: CsvInfo[i].song, illustration_big: 'null', chapter: '', bpm: '', length: '', chart: {} }
-                            logger.mark(`[phi-plugin]曲目详情未更新：${CsvInfo[i].song}`)
-                        }
-                        this.ori_info[CsvInfo[i].song].song = CsvInfo[i].song
-                        this.ori_info[CsvInfo[i].song].id = CsvInfo[i].id
-                        this.ori_info[CsvInfo[i].song].composer = CsvInfo[i].composer
-                        this.ori_info[CsvInfo[i].song].illustrator = CsvInfo[i].illustrator
-                        for (let j in this.Level) {
-                            const level = this.Level[j]
-                            if (CsvInfo[i][level]) {
-                                if (!this.ori_info[CsvInfo[i].song].chart[level]) {
-                                    this.ori_info[CsvInfo[i].song].chart[level] = {}
-                                }
-                                this.ori_info[CsvInfo[i].song].chart[level].charter = CsvInfo[i][level]
-                                this.ori_info[CsvInfo[i].song].chart[level].difficulty = Csvdif[i][level]
-                                /**最高定数 */
-                                this.MAX_DIFFICULTY = Math.max(this.MAX_DIFFICULTY, Number(Csvdif[i][level]))
-                            }
-                        }
-                        this.illlist.push(CsvInfo[i].song)
-                        this.songlist.push(CsvInfo[i].song)
+            this.ori_info[CsvInfo[i].song] = Jsoninfo[CsvInfo[i].id]
+            if (!this.ori_info[CsvInfo[i].song]) {
+                /**illustration_big = 'null'为特殊标记，getill时会返回默认图片 */
+                this.ori_info[CsvInfo[i].song] = { song: CsvInfo[i].song, illustration_big: 'null', chapter: '', bpm: '', length: '', chart: {} }
+                logger.mark(`[phi-plugin]曲目详情未更新：${CsvInfo[i].song}`)
+            }
+            this.ori_info[CsvInfo[i].song].song = CsvInfo[i].song
+            this.ori_info[CsvInfo[i].song].id = CsvInfo[i].id
+            this.ori_info[CsvInfo[i].song].composer = CsvInfo[i].composer
+            this.ori_info[CsvInfo[i].song].illustrator = CsvInfo[i].illustrator
+            for (let j in this.Level) {
+                const level = this.Level[j]
+                if (CsvInfo[i][level]) {
+                    if (!this.ori_info[CsvInfo[i].song].chart[level]) {
+                        this.ori_info[CsvInfo[i].song].chart[level] = {}
                     }
-                })
-            })
-        })
+                    this.ori_info[CsvInfo[i].song].chart[level].charter = CsvInfo[i][level]
+                    this.ori_info[CsvInfo[i].song].chart[level].difficulty = Csvdif[i][level]
+                    /**最高定数 */
+                    this.MAX_DIFFICULTY = Math.max(this.MAX_DIFFICULTY, Number(Csvdif[i][level]))
+                }
+            }
+            this.illlist.push(CsvInfo[i].song)
+            this.songlist.push(CsvInfo[i].song)
+        }
+
+        /**jrrp */
+        this.word = await readFile.FileReader(path.join(infoPath, 'jrrp.json'))
+
     }
 
     /**
@@ -336,17 +175,17 @@ export default new class getInfo {
      */
     info(song, original = false) {
         let result
-        switch (original ? 0 : Config.getDefOrConfig('config', 'otherinfo')) {
+        switch (original ? 0 : Config.getUserCfg('config', 'otherinfo')) {
             case 0: {
                 result = { ...this.ori_info, ...this.sp_info }
                 break;
             }
             case 1: {
-                result = { ...this.ori_info, ...this.sp_info, ...Config.getDefOrConfig('otherinfo') }
+                result = { ...this.ori_info, ...this.sp_info, ...Config.getUserCfg('otherinfo') }
                 break;
             }
             case 2: {
-                result = Config.getDefOrConfig('otherinfo')
+                result = Config.getUserCfg('otherinfo')
                 break;
             }
         }
@@ -359,15 +198,15 @@ export default new class getInfo {
      * @returns 
      */
     all_info(original = false) {
-        switch (original ? 0 : Config.getDefOrConfig('config', 'otherinfo')) {
+        switch (original ? 0 : Config.getUserCfg('config', 'otherinfo')) {
             case 0: {
                 return { ...this.ori_info, ...this.sp_info }
             }
             case 1: {
-                return { ...this.ori_info, ...this.sp_info, ...Config.getDefOrConfig('otherinfo') }
+                return { ...this.ori_info, ...this.sp_info, ...Config.getUserCfg('otherinfo') }
             }
             case 2: {
-                return Config.getDefOrConfig('otherinfo')
+                return Config.getUserCfg('otherinfo')
             }
         }
     }
@@ -379,7 +218,7 @@ export default new class getInfo {
      * @returns 原曲名称
      */
     songsnick(mic) {
-        let nickconfig = Config.getDefOrConfig('nickconfig', mic)
+        let nickconfig = Config.getUserCfg('nickconfig', mic)
         let all = []
 
         if (this.info(mic)) all.push(mic)
@@ -404,7 +243,7 @@ export default new class getInfo {
     /**
     * 根据参数模糊匹配返回原曲名称
     * @param {string} mic 别名
-    * @param {number} [Distance=0.85] 阈值
+    * @param {number} [Distance=0.85] 阈值 猜词0.95
     * @returns 原曲名称数组，按照匹配程度降序
     */
     fuzzysongsnick(mic, Distance = 0.85) {
@@ -429,7 +268,7 @@ export default new class getInfo {
         /**按照匹配程度排序 */
         let result = []
 
-        const usernick = Config.getDefOrConfig('nickconfig')
+        const usernick = Config.getUserCfg('nickconfig')
         const allinfo = this.all_info()
 
 
@@ -550,7 +389,7 @@ export default new class getInfo {
      * @param {string} nick 别名
      */
     async setnick(mic, nick) {
-        if (!Config.getDefOrConfig('nickconfig', mic)) {
+        if (!Config.getUserCfg('nickconfig', mic)) {
             Config.modify('nickconfig', nick, [mic])
         } else {
             Config.modifyarr('nickconfig', nick, mic, 'add')
@@ -584,11 +423,11 @@ export default new class getInfo {
                 }
             } else if (!ans) {
                 if (kind == 'common') {
-                    ans = `https://gitee.com/Steveeee-e/phi-plugin-ill/raw/main/ill/${this.SongGetId(name).replace(/.0$/, '.png')}`
+                    ans = `${Config.getUserCfg('config', 'onLinePhiIllUrl')}/ill/${this.SongGetId(name).replace(/.0$/, '.png')}`
                 } else if (kind == 'blur') {
-                    ans = `https://gitee.com/Steveeee-e/phi-plugin-ill/raw/main/illBlur/${this.SongGetId(name).replace(/.0$/, '.png')}`
+                    ans = `${Config.getUserCfg('config', 'onLinePhiIllUrl')}/illBlur/${this.SongGetId(name).replace(/.0$/, '.png')}`
                 } else if (kind == 'low') {
-                    ans = `https://gitee.com/Steveeee-e/phi-plugin-ill/raw/main/illLow/${this.SongGetId(name).replace(/.0$/, '.png')}`
+                    ans = `${Config.getUserCfg('config', 'onLinePhiIllUrl')}/illLow/${this.SongGetId(name).replace(/.0$/, '.png')}`
                 }
             }
         }

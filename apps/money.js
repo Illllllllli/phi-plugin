@@ -4,6 +4,7 @@ import Config from '../components/Config.js'
 import get from '../model/getdata.js'
 import send from '../model/send.js'
 import getNotes from '../model/getNotes.js'
+import getBanGroup from '../model/getBanGroup.js';
 
 const illlist = []
 const theme = [{ id: "default", src: "默认" }, { id: "snow", src: "寒冬" }, { id: "star", src: "使一颗心免于哀伤" }]
@@ -29,23 +30,23 @@ export class phimoney extends plugin {
             priority: 1000,
             rule: [
                 {
-                    reg: `^[#/]?(${Config.getDefOrConfig('config', 'cmdhead')})(sign|sign in|签到|打卡)$`,
+                    reg: `^[#/]?(${Config.getUserCfg('config', 'cmdhead')})(sign|sign in|签到|打卡)$`,
                     fnc: 'sign'
                 },
                 {
-                    reg: `^[#/]?(${Config.getDefOrConfig('config', 'cmdhead')})(task|我的任务)$`,
+                    reg: `^[#/]?(${Config.getUserCfg('config', 'cmdhead')})(task|我的任务)$`,
                     fnc: 'tasks'
                 },
                 {
-                    reg: `^[#/]?(${Config.getDefOrConfig('config', 'cmdhead')})(retask|刷新任务)$`,
-                    fnc: 'gettask'
+                    reg: `^[#/]?(${Config.getUserCfg('config', 'cmdhead')})(retask|刷新任务)$`,
+                    fnc: 'retask'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(send|送|转)(.*)$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(send|送|转)(.*)$`,
                     fnc: 'send'
                 },
                 {
-                    reg: `^[#/]?(${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(theme)(\\s*)[0-2]$`,
+                    reg: `^[#/]?(${Config.getUserCfg('config', 'cmdhead')})(\\s*)(theme)(\\s*)[0-2]$`,
                     fnc: 'theme'
                 },
             ]
@@ -55,6 +56,12 @@ export class phimoney extends plugin {
 
     /**签到 */
     async sign(e) {
+
+        if (await getBanGroup.get(e.group_id, 'sign')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let data = await getNotes.getNotesData(e.user_id, true)
         let last_sign = new Date(data.plugin_data.sign_in)
         let now_time = new Date().toString()
@@ -115,14 +122,14 @@ export class phimoney extends plugin {
             if (save) {
                 if (last_task < request_time) {
                     /**如果有存档并且没有刷新过任务自动刷新 */
-                    this.gettask(e)
+                    this.retask(e)
                     Remsg.push(`\n已自动为您刷新任务！您今日份的任务如下：`)
                 } else {
                     this.tasks(e)
                     Remsg.push(`\n您今日已经领取过任务了哦！您今日份的任务如下：`)
                 }
             } else {
-                Remsg.push(`\n您当前没有绑定sessionToken呐！任务需要绑定sessionToken后才能获取哦！\n/${Config.getDefOrConfig('config', 'cmdhead')} bind <sessionToken>`)
+                Remsg.push(`\n您当前没有绑定sessionToken呐！任务需要绑定sessionToken后才能获取哦！\n/${Config.getUserCfg('config', 'cmdhead')} bind <sessionToken>`)
             }
             send.send_with_At(e, Remsg)
 
@@ -137,11 +144,17 @@ export class phimoney extends plugin {
     }
 
     /**刷新任务并发送图片 */
-    async gettask(e) {
+    async retask(e) {
+
+        if (await getBanGroup.get(e.group_id, 'retask')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let save = await get.getsave(e.user_id)
 
         if (!save) {
-            send.send_with_At(e, `该功能需要绑定后才能使用哦！\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} bind <sessionToken>`)
+            send.send_with_At(e, `该功能需要绑定后才能使用哦！\n格式：/${Config.getUserCfg('config', 'cmdhead')} bind <sessionToken>`)
             return false
         }
 
@@ -259,6 +272,12 @@ export class phimoney extends plugin {
     }
 
     async tasks(e) {
+
+        if (await getBanGroup.get(e.group_id, 'tasks')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let now = await send.getsave_result(e)
 
         if (!now) {
@@ -338,6 +357,12 @@ export class phimoney extends plugin {
 
     /**转账 */
     async send(e) {
+
+        if (await getBanGroup.get(e.group_id, 'send')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let msg = e.msg.replace(/[#/](.*)(send|送|转)(\s*)/g, "")
         msg = msg.replace(/[\<\>]/g, "")
         let target = e.at
@@ -348,14 +373,14 @@ export class phimoney extends plugin {
                 target = msg[0]
                 num = Number(msg[1])
             } else {
-                send.send_with_At(e, `格式错误！请指定目标\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} send <@ or id> <数量>`, true)
+                send.send_with_At(e, `格式错误！请指定目标\n格式：/${Config.getUserCfg('config', 'cmdhead')} send <@ or id> <数量>`, true)
                 return true
             }
         } else {
             num = Number(msg)
         }
         if (num == NaN) {
-            send.send_with_At(e, `非法数字：${msg}\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} send <@ or id> <数量>`, true)
+            send.send_with_At(e, `非法数字：${msg}\n格式：/${Config.getUserCfg('config', 'cmdhead')} send <@ or id> <数量>`, true)
             return true
         }
 
@@ -403,10 +428,16 @@ export class phimoney extends plugin {
 
     /**主题相关 */
     async theme(e) {
+
+        if (await getBanGroup.get(e.group_id, 'theme')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let aim = e.msg.replace(/.*?theme\s*/g, '')
         aim = Number(aim)
         if (typeof aim != 'number' || aim < 0 || aim > 2) {
-            send.send_with_At(e, `请输入主题数字嗷！\n格式/${Config.getDefOrConfig('config', 'cmdhead')} theme 0-2`)
+            send.send_with_At(e, `请输入主题数字嗷！\n格式/${Config.getUserCfg('config', 'cmdhead')} theme 0-2`)
             return false
         }
         await getNotes.getNotesData(e.user_id)

@@ -8,7 +8,6 @@
 
 {{block 'main'}}
 
-<body style="scale: {{htmlScale}};">
     <div class="background">
         {{if theme == "star"}}
         <img src="{{_res_path}}html/otherimg/Star1.png" alt="曲绘-模糊">
@@ -33,7 +32,7 @@
         </div>
         <div class="m"></div>
         <div class="r">
-            <p>Player: {{PlayerId}}</p>
+            <p>Player: {{#PlayerId}}</p>
             <p>RankingScore: {{Rks}}</p>
             <div class="Challenge">
                 <p>ChallengeMode:</p>
@@ -137,5 +136,4 @@
     <canvas id="stars"></canvas>
     <script src="{{_res_path}}html/common/star.js"></script>
     {{/if}}
-</body>
 {{/block}}

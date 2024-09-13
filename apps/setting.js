@@ -7,6 +7,11 @@ import fs from 'node:fs';
 import { backupPath } from '../model/path.js';
 import path from 'node:path';
 import fCompute from '../model/fCompute.js';
+import getRksRank from '../model/getRksRank.js';
+import getSave from '../model/getSave.js';
+import { redisPath } from '../model/constNum.js';
+
+let banSetting = ["help", "bind", "b19", "wb19", "song", "ranklist", "fnc", "tipgame", "guessgame", "ltrgame", "sign", "setting", "dan"]
 
 export class phiset extends plugin {
     constructor() {
@@ -17,30 +22,44 @@ export class phiset extends plugin {
             priority: 1000,
             rule: [
                 // {
-                //     reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(禁用|ban).*$`,
+                //     reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(禁用|ban).*$`,
                 //     fnc: 'ban'
                 // },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})\\s*repu$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})\\s*repu$`,
                     fnc: 'restartpu'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})\\s*backup(\\s*back)?$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})\\s*backup(\\s*back)?$`,
                     fnc: 'backup'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})\\s*restore$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})\\s*restore$`,
                     fnc: 'restore'
                 },
+                {
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})\\s*get .*$`,
+                    fnc: 'get'
+                },
+                {
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})\\s*del .*$`,
+                    fnc: 'del'
+                },
+                {
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})\\s*allow .*$`,
+                    fnc: 'allow'
+                },
+                {
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})\\s*ban .*$`,
+                    fnc: 'ban'
+                },
+                {
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})\\s*unban .*$`,
+                    fnc: 'unban'
+                }
             ]
         })
 
-    }
-
-    async ban(e) {
-        if (e.msg.match(/guess|(猜)曲绘/g)) {
-            Config.getDefOrConfig('config', 'ban').includes(e)
-        }
     }
 
     async restartpu(e) {
@@ -107,4 +126,95 @@ export class phiset extends plugin {
         this.finish('doRestore', false)
     }
 
+    async get(e) {
+        if (!e.isMaster) {
+            return false
+        }
+        let msg = Number(e.msg.match(/[0-9]*$/)[0])
+        console.info(msg)
+        let token = await getRksRank.getRankUser(msg - 1, msg)
+        console.info(token)
+        send.send_with_At(e, token)
+    }
+
+    async del(e) {
+        if (!e.isMaster) {
+            return false
+        }
+        let msg = e.msg.match(/[0-9a-zA-Z]{25}$/)[0]
+        await getSave.delSaveBySessionToken(msg)
+        await getSave.banSessionToken(msg)
+        send.send_with_At(e, '成功')
+    }
+
+    async allow(e) {
+        if (!e.isMaster) {
+            return false
+        }
+        let msg = e.msg.match(/[0-9a-zA-Z]{25}$/)[0]
+        // console.info(msg)
+        await getSave.allowSessionToken(msg)
+        console.info(await getSave.isBanSessionToken(msg))
+        send.send_with_At(e, '成功')
+    }
+
+    async ban(e) {
+        if (!fCompute.is_admin(e) && !e.isMaster) {
+            return false
+        }
+        if (!e.group_id) {
+            send.send_with_At(e, '请在群聊中使用呐！')
+            return false
+        }
+
+        let msg = e.msg.replace(/^.*ban\s*/, '');
+        switch (msg) {
+            case 'all': {
+                for (let i in banSetting) {
+                    await redis.set(`${redisPath}:banGroup:${e.group_id}:${banSetting[i]}`, 1);
+                }
+                break
+            }
+            default: {
+                for (let i in banSetting) {
+                    if (banSetting[i] == msg) {
+                        await redis.set(`${redisPath}:banGroup:${e.group_id}:${banSetting[i]}`, 1);
+                        break
+                    }
+                }
+                break
+            }
+        }
+        // console.info(await redis.keys(`${redisPath}:banGroup:*`))
+        send.send_with_At(e, `当前群聊: ${e.group_id}\n已禁用:\n${(await redis.keys(`${redisPath}:banGroup:${e.group_id}:*`)).join('\n').replace(new RegExp(`${redisPath}:banGroup:${e.group_id}:`, 'g'), '')}`)
+    }
+    async unban(e) {
+        if (!e.isAdmin && !e.isMaster) {
+            return false
+        }
+        if (!e.group_id) {
+            send.send_with_At(e, '请在群聊中使用呐！')
+            return false
+        }
+        let msg = e.msg.replace(/^.*unban\s*/, '');
+        switch (msg) {
+            case 'all': {
+                for (let i in banSetting) {
+                    await redis.del(`${redisPath}:banGroup:${e.group_id}:${banSetting[i]}`);
+                }
+                break
+            }
+            default: {
+                for (let i in banSetting) {
+                    if (banSetting[i] == msg) {
+                        await redis.del(`${redisPath}:banGroup:${e.group_id}:${banSetting[i]}`);
+                        break
+                    }
+                }
+                break
+            }
+        }
+        // console.info(await redis.keys(`${redisPath}:banGroup:*`))
+        send.send_with_At(e, `当前群聊: ${e.group_id}\n已禁用:\n${(await redis.keys(`${redisPath}:banGroup:${e.group_id}:*`)).join('\n').replace(new RegExp(`${redisPath}:banGroup:${e.group_id}:`, 'g'), '')}`)
+    }
 }

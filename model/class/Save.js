@@ -63,8 +63,9 @@ export default class Save {
      * },
      * gameRecord: {}
      * }} data 
+     * @param {boolean} ignore 跳过存档检查
      */
-    constructor(data) {
+    constructor(data, ignore = false) {
         this.session = data.session
         this.saveInfo = {
             /**账户创建时间 2022-09-03T10:21:48.613Z */
@@ -97,7 +98,7 @@ export default class Save {
                 /**课题分 */
                 challengeModeRank: data.saveInfo.summary.challengeModeRank,
                 /**rks */
-                rankingScore: data.saveInfo.summary.rankingScore,
+                rankingScore: Number(data.saveInfo.summary.rankingScore),
                 /**客户端版本号 */
                 gameVersion: data.saveInfo.summary.gameVersion,
                 /**头像 */
@@ -186,6 +187,10 @@ export default class Save {
                     score: data.gameRecord[id][level].score,
                     acc: data.gameRecord[id][level].acc
                 }
+                if (ignore) continue
+                if (data.gameRecord[id][level].acc > 100) {
+                    logger.error(`acc > 100 ${this.session}`)
+                }
             }
         }
     }
@@ -217,7 +222,7 @@ export default class Save {
             for (let level in song) {
                 if (level == 4) break
                 let tem = this.gameRecord[song][level]
-                if (!tem) continue
+                if (!tem?.score) continue
                 sortedRecord.push(tem)
             }
         }
@@ -237,6 +242,7 @@ export default class Save {
         let record = []
         for (let song in this.gameRecord) {
             for (let level in song) {
+                /**LEGACY */
                 if (level == 4) break
                 let tem = this.gameRecord[song][level]
                 if (!tem) continue
@@ -299,6 +305,9 @@ export default class Save {
      * @returns phi, b19_list
      */
     async getB19(num) {
+        if (this.B19List) {
+            return this.B19List
+        }
         let getInfo = (await import('../getInfo.js')).default
         /**计算得到的rks，仅作为测试使用 */
         let com_rks = 0
@@ -309,8 +318,6 @@ export default class Save {
         /**处理数据 */
         if (phi?.rks) {
             com_rks += Number(phi.rks) //计算rks
-            phi.rks = phi.rks.toFixed(2)
-            phi.acc = phi.acc.toFixed(2)
             phi.illustration = getInfo.getill(phi.song)
             phi.suggest = "无法推分"
         }
@@ -334,13 +341,47 @@ export default class Save {
             rkslist[i].num = i + 1
             /**推分建议 */
             rkslist[i].suggest = fCompute.suggest(Number((i < 18) ? rkslist[i].rks : rkslist[18].rks) + minuprks * 20, rkslist[i].difficulty, 2)
-            rkslist[i].rks = Number(rkslist[i].rks).toFixed(2)
-            rkslist[i].acc = Number(rkslist[i].acc).toFixed(2)
             /**曲绘 */
             rkslist[i].illustration = getInfo.getill(rkslist[i].song, 'common')
             /**b19列表 */
             b19_list.push(rkslist[i])
         }
+
+        this.B19List = { phi, b19_list }
+        this.b19_rks = b19_list[Math.min(b19_list.length, 18)].rks
         return { phi, b19_list }
+    }
+
+    /**
+     * 
+     * @param {string} id 
+     * @param {number} lv 
+     * @param {number} count 保留位数
+     * @param {number} difficulty 
+     * @returns 
+     */
+    getSuggest(id, lv, count, difficulty) {
+        if (!this.b19_rks) {
+            let record = this.getRecord()
+            this.b19_rks = record[Math.min(record.length, 18)].rks
+        }
+        console.info(this.b19_rks, this.gameRecord[id][lv].rks || 0, this.gameRecord[id])
+        return fCompute.suggest(Math.max(this.b19_rks, this.gameRecord[id][lv].rks || 0) + this.minUpRks() * 20, difficulty, count)
+    }
+
+    /**
+     * 获取存档RKS
+     * @returns {number}
+     */
+    getRks() {
+        return Number(this.saveInfo.summary.rankingScore)
+    }
+
+    /**
+     * 获取存档sessionToken
+     * @returns {SaveInfo}
+     */
+    getSessionToken() {
+        return this.session
     }
 }

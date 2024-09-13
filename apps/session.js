@@ -6,8 +6,12 @@ import send from '../model/send.js'
 import Save from '../model/class/Save.js'
 import scoreHistory from '../model/class/scoreHistory.js'
 import getSave from '../model/getSave.js'
+import getQRcode from '../lib/getQRcode.js'
+import common from '../../../lib/common/common.js'
+import fCompute from '../model/fCompute.js'
+import getBanGroup from '../model/getBanGroup.js';
 
-const Level = ['EZ', 'HD', 'IN', 'AT', 'LEGACY']
+
 export class phisstk extends plugin {
     constructor() {
         super({
@@ -17,20 +21,24 @@ export class phisstk extends plugin {
             priority: 1000,
             rule: [
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(绑定.*[0-9a-zA-Z]{25}|bind).*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(绑定|bind).*([0-9a-zA-Z]{25}|qrcode).*$`,
                     fnc: 'bind'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(更新存档|update)$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(更新存档|update)$`,
                     fnc: 'update'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(解绑|unbind)$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(解绑|unbind)$`,
                     fnc: 'unbind'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(clean)$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(clean)$`,
                     fnc: 'clean'
+                },
+                {
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(sessionToken)$`,
+                    fnc: 'getSstk'
                 }
             ]
         })
@@ -39,29 +47,67 @@ export class phisstk extends plugin {
 
     async bind(e) {
 
-        if (e.isGroup) {
-            try {
-                await e.recall()
-            }
-            catch {
-                if (!Config.getDefOrConfig('config', 'isGuild')) {
-
-                    send.send_with_At(e, `\n请注意保护好自己的sessionToken哦！`, false, { recallMsg: 10 })
-                    // return true
-                }
-            }
+        if (await getBanGroup.get(e.group_id, 'bind')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
         }
 
-        let sessionToken = e.msg.replace(/[#/](.*)(绑定|bind)(\s*)/, "").match(/[0-9a-zA-Z]{25}/g)
+        let sessionToken = e.msg.replace(/[#/](.*)(绑定|bind)(\s*)/, "").match(/[0-9a-zA-Z]{25}|qrcode/g)
+
         sessionToken = sessionToken ? sessionToken[0] : null
 
-
         if (!sessionToken) {
-            send.send_with_At(e, `喂喂喂！你还没输入sessionToken呐！请将 ${e.msg.replace(/[#/](.*)(绑定|bind)(\s*)/, "")} 替换为你Phigros账号的sessionToken哦！\n帮助：/${Config.getDefOrConfig('config', 'cmdhead')} tk help\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} bind <sessionToken>`)
-            return true
+            send.send_with_At(e, `喂喂喂！你还没输入sessionToken呐！请将 ${e.msg.replace(/[#/](.*)(绑定|bind)(\s*)/, "")} 替换为你Phigros账号的sessionToken哦！\n帮助：/${Config.getUserCfg('config', 'cmdhead')} tk help\n格式：/${Config.getUserCfg('config', 'cmdhead')} bind <sessionToken>`)
+            return false
         }
 
-        if (!Config.getDefOrConfig('config', 'isGuild')) {
+        if (sessionToken == "qrcode") {
+            let request = await getQRcode.getRequest();
+            let qrCodeMsg;
+            if (Config.getUserCfg('config', 'TapTapLoginQRcode')) {
+                qrCodeMsg = await send.send_with_At(e, [`请扫描二维码进行登录嗷！请勿错扫他人二维码，扫描错误导致的损失后果自负。请注意，登录TapTap可能造成账号及财产损失，请在信任Bot来源的情况下扫码登录。任何损失与本插件作者无关。`, segment.image(await getQRcode.getQRcode(request.data.qrcode_url))], false, { recallMsg: 60 });
+            } else {
+                qrCodeMsg = await send.send_with_At(e, `请点击链接进行登录嗷！请勿使用他人的链接，进错网址导致的损失后果自负。请注意，登录TapTap可能造成账号及财产损失，请在信任Bot来源的情况下扫码登录。任何损失与本插件作者无关。\n${request.data.qrcode_url}`, false, { recallMsg: 60 });
+            }
+            let t1 = new Date();
+            let result;
+            /**是否发送过已扫描提示 */
+            let flag = false;
+            while (new Date() - t1 < request.data.expires_in * 1000) {
+                result = await getQRcode.checkQRCodeResult(request);
+                if (!result.success) {
+                    if (result.data.error == "authorization_waiting" && !flag) {
+                        send.send_with_At(e, `登录二维码已扫描，请确认登录`, false, { recallMsg: 10 });
+                        if (e.group?.recallMsg) {
+                            e.group.recallMsg(qrCodeMsg.message_id)
+                        } else if (e.friend?.recallMsg) {
+                            e.friend.recallMsg(qrCodeMsg.message_id)
+                        }
+                        flag = true;
+                    }
+                } else {
+                    break
+                }
+                await common.sleep(2000)
+            }
+
+            if (!result.success) {
+                send.send_with_At(e, `操作超时，请重试！`);
+                return true
+            }
+            try {
+                sessionToken = await getQRcode.getSessionToken(result);
+            } catch (err) {
+                logger.error(err)
+                send.send_with_At(e, `获取sessionToken失败QAQ！请确认您的Phigros账号已绑定TapTap！\n错误信息：${err}`)
+                return true
+            }
+        }
+
+        send.send_with_At(e, `请注意保护好自己的sessionToken呐！如果需要获取已绑定的sessionToken可以私聊发送 /${Config.getUserCfg('config', 'cmdhead')} sessionToken 哦！`, false, { recallMsg: 10 })
+
+
+        if (!Config.getUserCfg('config', 'isGuild')) {
 
             e.reply("正在绑定，请稍等一下哦！\n >_<", false, { recallMsg: 5 })
             // return true
@@ -78,13 +124,19 @@ export class phisstk extends plugin {
     }
 
     async update(e) {
+
+        if (await getBanGroup.get(e.group_id, 'update')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let session = await getSave.get_user_token(e.user_id)
         if (!session) {
-            e.reply(`没有找到你的存档哦！请先绑定sessionToken！\n帮助：/${Config.getDefOrConfig('config', 'cmdhead')} tk help\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} bind <sessionToken>`, true)
+            e.reply(`没有找到你的存档哦！请先绑定sessionToken！\n帮助：/${Config.getUserCfg('config', 'cmdhead')} tk help\n格式：/${Config.getUserCfg('config', 'cmdhead')} bind <sessionToken>`, true)
             return true
         }
 
-        if (!Config.getDefOrConfig('config', 'isGuild') || !e.isGroup) {
+        if (!Config.getUserCfg('config', 'isGuild') || !e.isGroup) {
             e.reply("正在更新，请稍等一下哦！\n >_<", true, { recallMsg: 5 })
         }
         try {
@@ -103,7 +155,7 @@ export class phisstk extends plugin {
             var User = new PhigrosUser(sessionToken)
         } catch (err) {
             logger.error(`[phi-plugin]绑定sessionToken错误`, err)
-            send.send_with_At(e, `绑定sessionToken错误QAQ!\n错误的sstk:${sessionToken}\n帮助：/${Config.getDefOrConfig('config', 'cmdhead')} tk help\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} bind <sessionToken>`, false, { recallMsg: 10 })
+            send.send_with_At(e, `绑定sessionToken错误QAQ!\n错误的sstk:${sessionToken}\n帮助：/${Config.getUserCfg('config', 'cmdhead')} tk help\n格式：/${Config.getUserCfg('config', 'cmdhead')} bind <sessionToken>`, false, { recallMsg: 10 })
             return true
         }
 
@@ -159,11 +211,11 @@ export class phisstk extends plugin {
         /**实际显示的数量 */
         let show = 0
         /**每日显示上限 */
-        const DayNum = Math.max(Config.getDefOrConfig('config', 'HistoryDayNum'), 2)
+        const DayNum = Math.max(Config.getUserCfg('config', 'HistoryDayNum'), 2)
         /**显示日期上限 */
-        const DateNum = Config.getDefOrConfig('config', 'HistoryScoreDate')
+        const DateNum = Config.getUserCfg('config', 'HistoryScoreDate')
         /**总显示上限 */
-        const TotNum = Config.getDefOrConfig('config', 'HistoryScoreNum')
+        const TotNum = Config.getUserCfg('config', 'HistoryScoreNum')
 
 
 
@@ -247,7 +299,7 @@ export class phisstk extends plugin {
         }
 
         let data = {
-            PlayerId: now.saveInfo.PlayerId,
+            PlayerId: fCompute.convertRichText(now.saveInfo.PlayerId),
             Rks: Number(now.saveInfo.summary.rankingScore).toFixed(4),
             Date: now.saveInfo.updatedAt,
             ChallengeMode: (now.saveInfo.summary.challengeModeRank - (now.saveInfo.summary.challengeModeRank % 100)) / 100,
@@ -265,7 +317,7 @@ export class phisstk extends plugin {
             theme: pluginData?.plugin_data?.theme || 'star',
         }
 
-        send.send_with_At(e, await get.getupdate(e, data))
+        send.send_with_At(e, [`PlayerId: ${fCompute.convertRichText(now.saveInfo.PlayerId, true)}`, await get.getupdate(e, data)])
 
         return false
     }
@@ -273,6 +325,12 @@ export class phisstk extends plugin {
 
 
     async unbind(e) {
+
+        if (await getBanGroup.get(e.group_id, 'unbind')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
 
         if (!getSave.get_user_token(e.user_id)) {
             send.send_with_At(e, '没有找到你的存档信息嗷！')
@@ -366,6 +424,21 @@ export class phisstk extends plugin {
             send.send_with_At(e, `取消成功！`)
         }
         this.finish('doClean', false)
+    }
+    async getSstk(e) {
+        if (e.isGroup) {
+            send.send_with_At(e, `请私聊使用嗷`)
+            return false
+        }
+
+        let save = await send.getsave_result(e)
+        if (!save) {
+            send.send_with_At(e, `未绑定存档，请先绑定存档嗷！`)
+            return true
+        }
+
+        send.send_with_At(e, `PlayerId: ${fCompute.convertRichText(save.saveInfo.PlayerId, true)}\nsessionToken: ${save.session}\nObjectId: ${save.saveInfo.objectId}\nQQId: ${e.user_id}`)
+
     }
 
 }

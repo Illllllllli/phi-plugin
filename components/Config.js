@@ -46,7 +46,6 @@ class Config {
      * @param {'config'|'nickconfig'|'otherinfo'} name 文件名
      * @param {'renderScale'
      * |'randerQuality'
-     * |'b19size'
      * |'WordB19Img'
      * |'WordSuggImg'
      * |'cmdhead'
@@ -69,9 +68,16 @@ class Config {
      * |'LetterTimeLength'
      * |'HistoryDayNum'
      * |'renderNum'
-     * |'LetterIllustration' } style key值
+     * |'LetterIllustration'
+     * |'GuessTipsTipNum'
+     * |'GuessTipsTipCD'
+     * |'GuessTipsTimeout'
+     * |'GuessTipsAnsTime'
+     * |'TapTapLoginQRcode'
+     * |'listScoreMaxNum'
+     * |'onLinePhiIllUrl' } style key值
     */
-    getDefOrConfig(name, style) {
+    getUserCfg(name, style) {
         let def = this.getdefSet(name)
         let config = this.getConfig(name)
         if (style) {

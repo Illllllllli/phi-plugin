@@ -8,7 +8,6 @@
 
 {{block 'main'}}
 
-<body style="scale: {{htmlScale}};">
     {{if background || illustration}}
     <div class="background">
         <img src="{{background || illustration}}" alt="{{background || illustration}}">
@@ -20,11 +19,11 @@
         </div>
         <div class="Player_Info-after"></div>
         <div class="basic-box">
-            <div class="basic-img">
-                <img src="{{illustration}}" alt="{{illustration}}">
-            </div>
             <div class="song_Id">
                 <p name="pvis">{{songName}}</p>
+            </div>
+            <div class="basic-img">
+                <img src="{{illustration}}" alt="{{illustration}}">
             </div>
             <div class="Player_Id">
                 <div class="avatar">
@@ -35,7 +34,7 @@
                         <p>ID</p>
                     </div>
                     <div class="Player_Id-right">
-                        <p name="pvis">{{PlayerId}}</p>
+                        <p name="pvis">{{#PlayerId}}</p>
                     </div>
                 </div>
             </div>
@@ -177,5 +176,4 @@
             {{/each}}
         </div>
     </div>
-</body>
 {{/block}}

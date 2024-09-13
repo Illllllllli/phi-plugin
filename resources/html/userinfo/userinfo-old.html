@@ -15,7 +15,6 @@
 
 {{block 'main'}}
 
-<body style="scale: {{htmlScale}};">
     <div class="basis-box">
         <div class="basis-box-out">
             <div class="box-in" id="basis">
@@ -32,7 +31,7 @@
                                     <p>Player ID</p>
                                 </div>
                                 <div class="name-value">
-                                    <p>{{gameuser.PlayerId}}</p>
+                                    <p>{{#gameuser.PlayerId}}</p>
                                 </div>
                             </div>
                             <div class="Challenge"> <img src="{{_res_path}}html/otherimg/{{gameuser.ChallengeMode}}.png"
@@ -227,5 +226,4 @@
             <p>{{Version.ver}}</p>
         </div>
     </div>
-</body>
 {{/block}}

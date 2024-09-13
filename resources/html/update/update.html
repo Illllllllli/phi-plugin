@@ -8,7 +8,6 @@
 
 {{block 'main'}}
 
-<body style="scale: {{htmlScale}};">
     <div class="background">
         {{if theme == "star"}}
         <img src="{{_res_path}}html/otherimg/Star1.png" alt="曲绘-模糊">
@@ -32,7 +31,7 @@
         </div>
         <div class="m"></div>
         <div class="r">
-            <p>Player: {{PlayerId}}</p>
+            <p>Player: {{#PlayerId}}</p>
             <p>RankingScore: {{Rks}}
                 {{if added_rks_notes[0]}} <span
                     style="color: {{added_rks_notes[0].includes('+')?'gold':'red'}};">{{added_rks_notes[0]}}</span>{{/if}}
@@ -69,7 +68,7 @@
                 </div>
             </div>
         </div>
-        <div class="song_box">
+        <div class="song_box" style="padding-top: 3%;">
             {{each task_data song}}
             {{if song}}
             <div class="abox">
@@ -176,8 +175,12 @@
                             <p>{{song.score_new}}</p>
                         </div>
                         <div class="acc">
-                            <p style="font-size: unset;">{{song.acc_new - song.acc_new % 1}}</p>
-                            <p style="font-size: xx-small;">.{{((song.acc_new % 1).toFixed(4)).replace('0.','')}}%</p>
+                            <div class="acc_1">
+                                <p>{{song.acc_new - song.acc_new % 1}}</p>
+                            </div>
+                            <div class="acc_2">
+                                <p>.{{((song.acc_new % 1).toFixed(4)).replace('0.','')}}%</p>
+                            </div>
                         </div>
                         {{if song.rks_new}}
                         <div class="rks">
@@ -246,5 +249,4 @@
     <canvas id="stars"></canvas>
     <script src="{{_res_path}}html/common/star.js"></script>
     {{/if}}
-</body>
 {{/block}}

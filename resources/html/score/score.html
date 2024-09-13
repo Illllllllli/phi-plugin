@@ -1,13 +1,10 @@
 {{block 'css'}}
 
-<head>
     <link rel="stylesheet" href="{{_res_path}}html//score/score.css">
-</head>
 
 {{/block}}
 {{block 'main'}}
 
-<body>
     <div class="background">
         <img src="{{illustration}}" alt="曲绘-模糊">
     </div>
@@ -15,7 +12,7 @@
         <div class="player">
             <div class="playerid-right"></div>
             <div class="playerid">
-                <p>{{PlayerId}}</p>
+                <p>{{#PlayerId}}</p>
             </div>
             <div class="avatar">
                 <img src="{{_res_path}}html/avatar/{{avatar}}.png" alt="{{avatar}}">
@@ -230,5 +227,4 @@
         </div>
 
     </div>
-</body>
 {{/block}}

@@ -1,4 +1,3 @@
-
 export default new class compute {
     /**
      * 计算等效rks
@@ -129,5 +128,103 @@ export default new class compute {
         let s2 = Math.floor(score / 1e3) % 1e3
         let s3 = score % 1e3
         return `${s1}'${this.ped(s2, 3)}'${this.ped(s3, 3)}`
+    }
+
+    /**
+     * 随机数，包含上下界
+     * @param {number} min 最小值
+     * @param {number} max 最大值
+     * @returns 随机数
+     */
+    randBetween(min, max) {
+        return Math.floor(Math.random() * (max - min + 1) + min)
+    }
+
+    /**
+     * 随机打乱数组
+     * @param {Array} arr 原数组
+     * @returns 随机打乱的数组
+     */
+    randArray(arr) {
+        let newArr = []
+        while (arr.length > 0) {
+            newArr.push(arr.splice(Math.floor(Math.random() * arr.length), 1)[0])
+        }
+        return newArr
+    }
+
+    /**
+     * 转换时间格式
+     * @param {Date|string} date 时间
+     * @returns 2020/10/8 10:08:08
+     */
+    formatDate(date) {
+        date = new Date(date)
+        return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date.toString().match(/([0-9])+:([0-9])+:([0-9])+/)[0]}`
+    }
+
+    /**
+     * 转换unity富文本
+     * @param {string} richText 
+     * @param {boolean} [onlyText=false] 是否只返回文本
+     * @returns 
+     */
+    convertRichText(richText, onlyText = false) {
+        richText = richText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        let reg = [/&lt;color\s*=\s*.*?&gt;(.*?)&lt;\/color&gt;/, /&lt;size\s*=\s*.*?&gt;(.*?)&lt;\/size&gt;/, /&lt;i&gt;(.*?)&lt;\/i&gt;/, /&lt;b&gt;(.*?)&lt;\/b&gt;/]
+        while (1) {
+            if (richText.match(reg[0])) {
+                let txt = richText.match(reg[0])[1]
+                let color = richText.match(reg[0])[0].match(/&lt;color\s*=\s*(.*?)&gt;/)[1].replace(/[\s\"]/g, '')
+                richText = richText.replace(reg[0], onlyText ? txt : `<span style="color:${color}">${txt}</span>`)
+                continue
+            }
+
+            if (richText.match(reg[2])) {
+                let txt = richText.match(reg[2])[1]
+                richText = richText.replace(reg[2], onlyText ? txt : `<i>${txt}</i>`)
+                continue
+            }
+
+            if (richText.match(reg[3])) {
+                let txt = richText.match(reg[3])[1]
+                richText = richText.replace(reg[3], onlyText ? txt : `<b>${txt}</b>`)
+                continue
+            }
+            // if (richText.match(reg[1])) {
+            //     let txt = richText.match(reg[1])[1]
+            //     let size = richText.match(reg[1])[0].match(/size\s*=[^>]*?([^>]*)/)[1]o
+            //     return this.convertRichText(richText.replace(reg[1], `<span style="font-size:${size}px">${txt}</span>`))
+            // }
+            if (richText.match(/\n\r?/)) {
+                richText.replace(/\n\r?/g, '<br>')
+            }
+            break
+        }
+        if (onlyText) {
+            richText = richText.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        }
+        return richText
+    }
+
+    /**是否是管理员 */
+    is_admin(e) {
+        //console.info(e)
+        if (!e?.member?.permissions) {
+            return false;
+        }
+        switch (e?.member?.permissions[1]) {
+            /**频道主 */
+            case 4:
+            /**超管 */
+            case 2:
+            /**分组管理 */
+            case 7:
+            /**子频道管理 */
+            case 5:
+                return true;
+            default:
+                return false;
+        }
     }
 }()

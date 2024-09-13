@@ -6,10 +6,11 @@ import atlas from '../model/picmodle.js'
 import getInfo from '../model/getInfo.js'
 import getSave from '../model/getSave.js'
 import fCompute from '../model/fCompute.js'
+import getBanGroup from '../model/getBanGroup.js';
 
 
-const Level = ['EZ', 'HD', 'IN', 'AT']
-const illlist = get.illlist
+let Level = ['EZ', 'HD', 'IN', 'AT']
+let illlist = get.illlist
 
 export class phiuser extends plugin {
     constructor() {
@@ -20,19 +21,19 @@ export class phiuser extends plugin {
             priority: 1000,
             rule: [
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(data)$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(data)$`,
                     fnc: 'data'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(info)[1-2]?.*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(info)[1-2]?.*$`,
                     fnc: 'info'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)((lvsco(re)?)|scolv)(.*)$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)((lvsco(re)?)|scolv)(.*)$`,
                     fnc: 'lvscore'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)list(.*)$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)list(.*)$`,
                     fnc: 'list'
                 }
             ]
@@ -42,23 +43,35 @@ export class phiuser extends plugin {
 
     /**查询data */
     async data(e) {
+
+        if (await getBanGroup.get(e.group_id, 'data')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let User = await get.getsave(e.user_id)
         if (User) {
             if (User.gameProgress) {
                 let data = User.gameProgress.money
                 send.send_with_At(e, `您的data数为：${data[4] ? `${data[4]}PB ` : ''}${data[3] ? `${data[3]}TB ` : ''}${data[2] ? `${data[2]}GB ` : ''}${data[1] ? `${data[1]}MB ` : ''}${data[0] ? `${data[0]}KB ` : ''}`)
             } else {
-                send.send_with_At(e, `请先更新数据哦！\n/${Config.getDefOrConfig('config', 'cmdhead')} update`)
+                send.send_with_At(e, `请先更新数据哦！\n/${Config.getUserCfg('config', 'cmdhead')} update`)
             }
         } else {
-            send.send_with_At(e, `请先绑定sessionToken哦！\n/${Config.getDefOrConfig('config', 'cmdhead')} bind <sessionToken>`)
+            send.send_with_At(e, `请先绑定sessionToken哦！\n/${Config.getUserCfg('config', 'cmdhead')} bind <sessionToken>`)
         }
         return true
     }
 
     async info(e) {
+
+        if (await getBanGroup.get(e.group_id, 'info')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         /**'EZ', 'HD', 'IN', 'AT' */
-        let tot = [0, 0, 0, 0] 
+        let tot = [0, 0, 0, 0]
         /**背景 */
         let bksong = e.msg.replace(/^.*(info)[1-2]?\s*/g, '')
         if (bksong) {
@@ -73,15 +86,15 @@ export class phiuser extends plugin {
             bksong = get.getill(illlist[randint(0, illlist.length - 1)], 'blur')
         }
 
-        const save = await send.getsave_result(e, 1.0)
+        let save = await send.getsave_result(e, 1.0)
 
         if (!save) {
             return true
         }
 
-        const Record = save.gameRecord
+        let Record = save.gameRecord
 
-        const stats_ = {
+        let stats_ = {
             tatle: '',
             Rating: '',
             unlock: 0,
@@ -126,7 +139,10 @@ export class phiuser extends plugin {
         stats[3].tatle = Level[3]
 
         for (let id in Record) {
-            const record = Record[id]
+            if (!getInfo.idgetsong(id)) {
+                continue
+            }
+            let record = Record[id]
             for (let lv in [0, 1, 2, 3]) {
                 if (!record[lv]) continue
 
@@ -135,7 +151,7 @@ export class phiuser extends plugin {
                 if (record[lv].score >= 700000) {
                     ++stats[lv].cleared
                 }
-                if (record[lv].fc) {
+                if (record[lv].fc || record[lv].score == 1000000) {
                     ++stats[lv].fc
                 }
                 if (record[lv].score == 1000000) {
@@ -158,12 +174,12 @@ export class phiuser extends plugin {
             }
         }
 
-        const money = save.gameProgress.money
+        let money = save.gameProgress.money
         let userbackground = await fCompute.getBackground(save.gameuser.background)
 
         if (!userbackground) {
             e.reply(`ERROR: 未找到[${save.gameuser.background}]的有关信息！`)
-            logger.error(`未找到${save.gameuser.background}的曲绘！`)
+            logger.error(`未找到${save.gameuser.background}对应的曲绘！`)
         }
 
         let dan = await get.getDan(e.user_id)
@@ -174,9 +190,9 @@ export class phiuser extends plugin {
             ChallengeModeRank: save.saveInfo.summary.challengeModeRank % 100,
             rks: save.saveInfo.summary.rankingScore,
             data: `${money[4] ? `${money[4]}PiB ` : ''}${money[3] ? `${money[3]}TiB ` : ''}${money[2] ? `${money[2]}GiB ` : ''}${money[1] ? `${money[1]}MiB ` : ''}${money[0] ? `${money[0]}KiB ` : ''}`,
-            selfIntro: save.gameuser.selfIntro,
+            selfIntro: fCompute.convertRichText(save.gameuser.selfIntro),
             backgroundurl: userbackground,
-            PlayerId: save.saveInfo.PlayerId,
+            PlayerId: fCompute.convertRichText(save.saveInfo.PlayerId),
             CLGMOD: dan?.Dan,
             EX: dan?.EX,
         }
@@ -227,10 +243,10 @@ export class phiuser extends plugin {
             i = Number(i)
 
             if (!rks_history_[i + 1]) break
-            const x1 = range(rks_history_[i].date, rks_date)
-            const y1 = range(rks_history_[i].value, rks_range)
-            const x2 = range(rks_history_[i + 1].date, rks_date)
-            const y2 = range(rks_history_[i + 1].value, rks_range)
+            let x1 = range(rks_history_[i].date, rks_date)
+            let y1 = range(rks_history_[i].value, rks_range)
+            let x2 = range(rks_history_[i + 1].date, rks_date)
+            let y2 = range(rks_history_[i + 1].value, rks_range)
             rks_history.push([x1, y1, x2, y2])
         }
 
@@ -239,10 +255,10 @@ export class phiuser extends plugin {
             i = Number(i)
 
             if (!data_history_[i + 1]) break
-            const x1 = range(data_history_[i].date, data_date)
-            const y1 = range(data_history_[i].value, data_range)
-            const x2 = range(data_history_[i + 1].date, data_date)
-            const y2 = range(data_history_[i + 1].value, data_range)
+            let x1 = range(data_history_[i].date, data_date)
+            let y1 = range(data_history_[i].value, data_range)
+            let x2 = range(data_history_[i + 1].date, data_date)
+            let y2 = range(data_history_[i + 1].value, data_range)
             data_history.push([x1, y1, x2, y2])
         }
 
@@ -264,18 +280,18 @@ export class phiuser extends plugin {
 
         /**统计在要求acc>=i的前提下，玩家的rks为多少 */
         /**存档 */
-        const acc_rksRecord = save.getRecord()
+        let acc_rksRecord = save.getRecord()
         /**phi列表 */
-        const acc_rks_phi = save.findAccRecord(100)
+        let acc_rks_phi = save.findAccRecord(100)
         /**所有rks节点 */
-        const acc_rks_data = []
+        let acc_rks_data = []
         /**转换成坐标的节点 */
-        const acc_rks_data_ = []
+        let acc_rks_data_ = []
         /**rks上下界 */
-        const acc_rks_range = [100, 0]
+        let acc_rks_range = [100, 0]
 
         /**原本b19中最小acc 要展示的acc序列 */
-        const acc_rks_AccRange = [100]
+        let acc_rks_AccRange = [100]
 
         for (let i = 0; i < Math.min(acc_rksRecord.length, 19); i++) {
             acc_rks_AccRange[0] = Math.min(acc_rks_AccRange[0], acc_rksRecord[i].acc)
@@ -305,6 +321,10 @@ export class phiuser extends plugin {
             acc_rks_range[0] = Math.min(acc_rks_range[0], tem_rks)
             acc_rks_range[1] = Math.max(acc_rks_range[1], tem_rks)
         }
+
+        if (acc_rks_AccRange[acc_rks_AccRange.length - 1] < 100) {
+            acc_rks_AccRange.push(100)
+        }
         // console.info(acc_rks_AccRange)
 
         for (let i = 1; i < acc_rks_data.length; ++i) {
@@ -317,16 +337,13 @@ export class phiuser extends plugin {
         // console.info(acc_rks_data_)
 
         /**处理acc显示区间，防止横轴数字重叠 */
-        if (acc_rks_AccRange[acc_rks_AccRange.length - 1] < 100) {
-            acc_rks_AccRange.push(100)
-        }
         if (acc_rks_AccRange[0] == 100) {
             acc_rks_AccRange[0] = 0
         }
-        const acc_length = (100 - acc_rks_AccRange[0])
-        const min_acc = acc_rks_AccRange[0]
+        let acc_length = (100 - acc_rks_AccRange[0])
+        let min_acc = acc_rks_AccRange[0]
         /**要传的数组 */
-        const acc_rks_AccRange_position = []
+        let acc_rks_AccRange_position = []
         while (100 - acc_rks_AccRange[acc_rks_AccRange.length - 2] < acc_length / 10) {
             acc_rks_AccRange.splice(acc_rks_AccRange.length - 2, 1)
         }
@@ -356,13 +373,21 @@ export class phiuser extends plugin {
             background: bksong,
         }
 
+        // console.info(acc_rks_AccRange_position)
+
         let kind = Number(e.msg.replace(/\/.*info/g, ''))
         send.send_with_At(e, await get.getuser_info(e, data, kind))
     }
 
     async lvscore(e) {
 
-        const save = await send.getsave_result(e, 1.0)
+        if (await getBanGroup.get(e.group_id, 'lvscore')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
+
+        let save = await send.getsave_result(e, 1.0)
 
         if (!save) {
             return true
@@ -467,8 +492,8 @@ export class phiuser extends plugin {
 
 
         for (let id in Record) {
-            const info = get.info(get.idgetsong(id), true)
-            const record = Record[id]
+            let info = get.info(get.idgetsong(id), true)
+            let record = Record[id]
             let vis = false
             for (let lv in [0, 1, 2, 3]) {
                 if (!info.chart[Level[lv]]) continue
@@ -487,7 +512,7 @@ export class phiuser extends plugin {
                     if (record[lv].score >= 700000) {
                         ++totcleared
                     }
-                    if (record[lv].fc) {
+                    if (record[lv].fc || record[lv].score == 1000000) {
                         ++totfc
                     }
                     if (record[lv].score == 1000000) {
@@ -554,7 +579,7 @@ export class phiuser extends plugin {
             ChallengeMode: (save.saveInfo.summary.challengeModeRank - (save.saveInfo.summary.challengeModeRank % 100)) / 100,
             ChallengeModeRank: save.saveInfo.summary.challengeModeRank % 100,
             rks: save.saveInfo.summary.rankingScore,
-            PlayerId: save.saveInfo.PlayerId,
+            PlayerId: fCompute.convertRichText(save.saveInfo.PlayerId),
         }
 
         // let remsg = ''
@@ -572,13 +597,19 @@ export class phiuser extends plugin {
 
     async list(e) {
 
-        const save = await send.getsave_result(e)
+        if (await getBanGroup.get(e.group_id, 'list')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
+
+        let save = await send.getsave_result(e)
 
         if (!save) {
             return true
         }
 
-        const range = [0, getInfo.MAX_DIFFICULTY]
+        let range = [0, getInfo.MAX_DIFFICULTY]
 
         let msg = e.msg.replace(/^[#/](.*)(lvsco(re)?)(\s*)/, "")
 
@@ -614,6 +645,7 @@ export class phiuser extends plugin {
         let Record = save.gameRecord
 
         let data = []
+        let minUpRks = save.minUpRks();
 
         for (let id in Record) {
             let song = get.idgetsong(id)
@@ -629,12 +661,17 @@ export class phiuser extends plugin {
                 if (range[0] <= difficulty && difficulty <= range[1] && isask[lv]) {
                     if ((!record[lv] && !scoreAsk.NEW)) continue
                     if (record[lv] && !scoreAsk[record[lv].Rating.toUpperCase()]) continue
-                    data.push({ ...record[lv], ...info, illustration: get.getill(get.idgetsong(id), 'blur'), difficulty: difficulty, rank: Level[lv] })
+                    if (!record[lv]) {
+                        record[lv] = {}
+                    }
+                    console.info(getInfo.info(getInfo.idgetsong(id)).chart)
+                    record[lv].suggest = save.getSuggest(id, lv, 4, record[lv].difficulty || getInfo.info(getInfo.idgetsong(id)).chart[Level[lv]].difficulty)
+                    data.push({ ...record[lv], ...info, illustration: get.getill(get.idgetsong(id), 'common'), difficulty: difficulty, rank: Level[lv] })
                 }
             }
         }
 
-        if (data.length > 180) {
+        if (data.length > Config.getUserCfg('config', 'listScoreMaxNum')) {
             send.send_with_At(e, "谱面数量过多，请缩小搜索范围QAQ！")
             return true
         }
@@ -648,9 +685,7 @@ export class phiuser extends plugin {
         let request = []
         request.push(`${range[0]} - ${range[1]}`)
 
-        for (let lv in isask) {
 
-        }
 
         send.send_with_At(e, await atlas.list(e, {
             song: data,
@@ -779,7 +814,7 @@ function match_range(msg, range) {
 
 //定义生成指定区间整数随机数的函数
 function randint(min, max) {
-    const range = max - min + 1
-    const randomOffset = Math.floor(Math.random() * range)
+    let range = max - min + 1
+    let randomOffset = Math.floor(Math.random() * range)
     return (randomOffset + min) % range + min
 }

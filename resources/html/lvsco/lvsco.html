@@ -7,7 +7,6 @@
 
 {{block 'main'}}
 
-<body>
     <div class="full-box">
         <div class="left">
             <div class="left-top">
@@ -86,7 +85,7 @@
                         </div>
                         <div class="basic_info">
                             <div class="user_name">
-                                <p name="pvis">{{PlayerId}}</p>
+                                <p name="pvis">{{#PlayerId}}</p>
                             </div>
                             <div class="user_rks">
                                 <div class="player_rks">
@@ -213,7 +212,7 @@
                 <div class="right_content-title">
                     <p>保管单位</p>
                 </div>
-                <p>{{PlayerId}}</p>
+                <p>{{#PlayerId}}</p>
                 <div class="right_content-title">
                     <p>等级</p>
                 </div>
@@ -329,5 +328,4 @@
             </div>
         </div>
     </div>
-</body>
 {{/block}}

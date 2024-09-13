@@ -53,6 +53,11 @@
     src: url("./font/NotoColorEmoji-Regular.ttf") format('truetype');
 }
 
+@font-face {
+    font-family: 'NotoSansMath-Regular';
+    src: url("./font/NotoSansMath-Regular.ttf") format('truetype');
+}
+
 :root {
     --AT: #6e6e6e;
     --IN: #ff0000;
@@ -61,15 +66,15 @@
 }
 
 body {
-    font-family: 'PHI', 'NotoSansArabic', 'NotoSansSymbols2', 'NOTO', 'NotoSansJP', 'NotoSansKannada', 'NotoSansCanadianAboriginal', 'NotoColorEmoji-Regular', 'HIMALAYA', '吞弥恰俊';
+    font-family: 'PHI', 'NotoSansArabic', 'NotoSansSymbols2', 'NOTO', 'NotoSansJP', 'NotoSansKannada', 'NotoSansCanadianAboriginal', 'NotoColorEmoji-Regular', 'HIMALAYA', '吞弥恰俊', 'NotoSansMath-Regular';
     margin: 0;
     background: url('../otherimg/phigros.png') center no-repeat;
     background-size: cover;
+    background-position: center;
     transform-origin: top left;
 }
 
 .background {
-    /* writing-mode: lr; */
     width: 100%;
     height: 100%;
     position: absolute;
@@ -79,16 +84,18 @@ body {
     justify-content: center;
     align-items: center;
     flex-direction: column;
+    z-index: -1;
 }
 
 .background img {
     min-width: 100%;
     min-width: 100%;
+    min-height: 100%;
     position: absolute;
     overflow: hidden;
     transform: scale(1.2);
     filter: blur(50px) brightness(75%);
-    z-index: -2;
+    z-index: -1;
 }
 
 .createdbox {
@@ -130,13 +137,13 @@ body {
 
 .tips {
     position: absolute;
-    bottom: 10px;
-    left: 1%;
+    bottom: 0px;
+    left: 5px;
     writing-mode: horizontal-tb;
 }
 
 .tips p {
-    font-size: unset;
+    font-size: 14px;
 }
 
 .colorful p {

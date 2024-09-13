@@ -1,4 +1,4 @@
-import { dataPath, imgPath, pluginDataPath } from "./path.js";
+import { _path, dataPath, pluginDataPath } from "./path.js";
 import Config from "../components/Config.js";
 import readFile from './getFile.js';
 import atlas from "./picmodle.js";
@@ -7,7 +7,6 @@ import SongsInfo from './class/SongsInfo.js';
 import Save from './class/Save.js';
 import PhigrosUser from '../lib/PhigrosUser.js';
 import send from './send.js';
-import scoreHistory from './class/scoreHistory.js'
 import path from 'node:path';
 import getSave from './getSave.js';
 import getNotes from './getNotes.js'
@@ -15,6 +14,7 @@ import getInfo from './getInfo.js';
 import pic from './getPic.js';
 import { Level } from "./constNum.js";
 import getPic from "./getPic.js";
+// import { redis } from 'yunzai'
 
 
 class getdata {
@@ -47,10 +47,12 @@ class getdata {
     async init() {
 
         try {
-            /**之前写错了，一不小心把.json的文件也当成文件夹创建了，这里要去清除空文件夹 */
-            readFile.rmEmptyDir(dataPath)
-            /**移动json文件 */
-            readFile.movJsonFile(dataPath)
+            if (await readFile.FileReader(path.join(_path, 'user_token.json')) || !(await redis.keys("phiPlugin:userToken:*"))[0]) {
+                /**之前写错了，一不小心把.json的文件也当成文件夹创建了，这里要去清除空文件夹 */
+                readFile.rmEmptyDir(dataPath)
+                /**移动json文件 */
+                readFile.movJsonFile(dataPath)
+            }
         } catch (error) {
             logger.error(error)
         }
@@ -245,9 +247,9 @@ class getdata {
         if (old) {
             if (old.session) {
                 if (old.session == User.session) {
-                    // send.send_with_At(e, `你已经绑定了该sessionToken哦！将自动执行update...\n如果需要删除统计记录请 ⌈/${Config.getDefOrConfig('config', 'cmdhead')} unbind⌋ 进行解绑哦！`)
+                    // send.send_with_At(e, `你已经绑定了该sessionToken哦！将自动执行update...\n如果需要删除统计记录请 ⌈/${Config.getUserCfg('config', 'cmdhead')} unbind⌋ 进行解绑哦！`)
                 } else {
-                    send.send_with_At(e, `检测到新的sessionToken，将自动更换绑定。如果需要删除统计记录请 ⌈/${Config.getDefOrConfig('config', 'cmdhead')} unbind⌋ 进行解绑哦！`)
+                    send.send_with_At(e, `检测到新的sessionToken，将自动更换绑定。如果需要删除统计记录请 ⌈/${Config.getUserCfg('config', 'cmdhead')} unbind⌋ 进行解绑哦！`)
 
                     await getSave.add_user_token(e.user_id, User.session)
                     old = await this.getsave(e.user_id)

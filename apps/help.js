@@ -6,6 +6,7 @@ import atlas from '../model/picmodle.js'
 import getFile from '../model/getFile.js'
 import path from 'path'
 import { infoPath } from '../model/path.js'
+import getBanGroup from '../model/getBanGroup.js';
 
 const helpGroup = await getFile.FileReader(path.join(infoPath, 'help.json'))
 
@@ -19,11 +20,11 @@ export class phihelp extends plugin {
             priority: 1000,
             rule: [
                 {
-                    reg: `^[#/](pgr|PGR|屁股肉|phi|Phi|(${Config.getDefOrConfig('config', 'cmdhead')}))(\\s*)(命令|帮助|菜单|help|说明|功能|指令|使用说明)$`,
+                    reg: `^[#/](pgr|PGR|屁股肉|phi|Phi|(${Config.getUserCfg('config', 'cmdhead')}))(\\s*)(命令|帮助|菜单|help|说明|功能|指令|使用说明)$`,
                     fnc: 'help'
                 },
                 {
-                    reg: `^[#/](pgr|PGR|屁股肉|phi|Phi|(${Config.getDefOrConfig('config', 'cmdhead')}))(\\s*)to?k(en)?(\\s*)(命令|帮助|菜单|help|说明|功能|指令|使用说明)$`,
+                    reg: `^[#/](pgr|PGR|屁股肉|phi|Phi|(${Config.getUserCfg('config', 'cmdhead')}))(\\s*)to?k(en)?(\\s*)(命令|帮助|菜单|help|说明|功能|指令|使用说明)$`,
                     fnc: 'tkhelp'
                 }
 
@@ -32,7 +33,13 @@ export class phihelp extends plugin {
 
     }
     async help(e) {
-        let head = Config.getDefOrConfig('config', 'cmdhead')
+
+        if (await getBanGroup.get(e.group_id, 'help')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
+        let head = Config.getUserCfg('config', 'cmdhead')
         head = head.match(RegExp(head))[0]
         let pluginData = await get.getpluginData(e.user_id)
         e.reply(await atlas.help(e, {
@@ -46,6 +53,12 @@ export class phihelp extends plugin {
     }
 
     async tkhelp(e) {
-        send.send_with_At(e, `sessionToken有关帮助：\n【推荐】：使用网页扫码登录TapTap获取token\nhttps://pgr.afkeru.top\n【基础方法】https://potent-cartwheel-e81.notion.site/Phigros-Bot-f154a4b0ea6446c28f62149587cd5f31\n绑定sessionToken指令：\n/${Config.getDefOrConfig('config', 'cmdhead')} bind <sessionToken>`)
+
+        if (await getBanGroup.get(e.group_id, 'tkhelp')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
+        send.send_with_At(e, `sessionToken有关帮助：\n【推荐】：扫码登录TapTap获取token\n指令：/${Config.getUserCfg('config','cmdhead')} bind qrcode\n【基础方法】https://potent-cartwheel-e81.notion.site/Phigros-Bot-f154a4b0ea6446c28f62149587cd5f31\n绑定sessionToken指令：\n/${Config.getUserCfg('config', 'cmdhead')} bind <sessionToken>`)
     }
 }

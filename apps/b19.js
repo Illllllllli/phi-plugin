@@ -13,6 +13,9 @@ import getSave from '../model/getSave.js';
 import { LevelNum } from '../model/constNum.js';
 import getNotes from '../model/getNotes.js';
 import getPic from '../model/getPic.js';
+import getBanGroup from '../model/getBanGroup.js';
+import Save from '../model/class/Save.js';
+import { MyGameRecord } from '../MyData.js';
 
 
 const ChallengeModeName = ['白', '绿', '蓝', '红', '金', '彩']
@@ -79,37 +82,43 @@ export class phib19 extends plugin {
             priority: 1000,
             rule: [
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(b[0-9]+|rks|pgr|PGR|B[0-9]+|RKS).*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(b[0-9]+|rks|pgr|PGR|B[0-9]+|RKS).*$`,
                     fnc: 'b19'
                 },
                 {
-                    reg: `^[#/杠刚钢纲](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)[a(arc)啊阿批屁劈](\\s*)((b|B)[0-9]+|[比必币]([0-9]+|三零))$`,
+                    reg: `^[#/杠刚钢纲](${Config.getUserCfg('config', 'cmdhead')})(\\s*)[a(arc)啊阿批屁劈](\\s*)((b|B)[0-9]+|[比必币]([0-9]+|三零))$`,
                     fnc: 'arcgrosB19'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)best(\\s*)[1-9]?[0-9]?$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)best(\\s*)[1-9]?[0-9]?$`,
                     fnc: 'bestn'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(score|单曲成绩)[1-2]?.*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(score|单曲成绩)[1-2]?.*$`,
                     fnc: 'singlescore'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(suggest|推分(建议)?)$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(suggest|推分(建议)?)$`,
                     fnc: 'suggest'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)chap.*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)chap.*$`,
                     fnc: 'chap'
                 }
             ]
         })
-
     }
 
     async b19(e) {
 
-        let save = await send.getsave_result(e)
+        if (await getBanGroup.get(e.group_id, 'b19')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
+        // let save = await send.getsave_result(e)
+        let save = new Save(MyGameRecord)
+        await save.init()
         if (!save) {
             return true
         }
@@ -123,7 +132,7 @@ export class phib19 extends plugin {
         }
 
         nnum = Math.max(nnum, 21)
-        nnum = Math.min(nnum, Config.getDefOrConfig('config', 'B19MaxNum'))
+        nnum = Math.min(nnum, Config.getUserCfg('config', 'B19MaxNum'))
 
         let bksong = e.msg.replace(/^.*(b|rks|pgr|PGR|B|RKS)[0-9]*\s*/g, '')
 
@@ -140,26 +149,27 @@ export class phib19 extends plugin {
         let plugin_data = await get.getpluginData(e.user_id)
 
 
-        if (!Config.getDefOrConfig('config', 'isGuild'))
+        if (!Config.getUserCfg('config', 'isGuild'))
             e.reply("正在生成图片，请稍等一下哦！\n//·/w\\·\\\\", false, { recallMsg: 5 })
 
         /**自定义数量不更新存档 */
-        if (nnum == 21) {
+        // if (nnum == 21) {
 
-            try {
-                get.buildingRecord(e, new PhigrosUser(save.session))
+        //     try {
+        //         get.buildingRecord(e, new PhigrosUser(save.session))
 
-                save = await send.getsave_result(e)
+        //         save = await send.getsave_result(e)
 
-                if (!save) {
-                    return true
-                }
+        //         if (!save) {
+        //             return true
+        //         }
 
-            } catch (err) {
-                send.send_with_At(e, err)
-                logger.error(err)
-            }
-        }
+        //     } catch (err) {
+        //         send.send_with_At(e, err)
+        //         logger.error(err)
+        //     }
+        // }
+
 
         let save_b19 = await save.getB19(nnum)
 
@@ -173,7 +183,7 @@ export class phib19 extends plugin {
             data: `${money[4] ? `${money[4]}PiB ` : ''}${money[3] ? `${money[3]}TiB ` : ''}${money[2] ? `${money[2]}GiB ` : ''}${money[1] ? `${money[1]}MiB ` : ''}${money[0] ? `${money[0]}KiB ` : ''}`,
             selfIntro: save.gameuser.selfIntro,
             backgroundUrl: await fCompute.getBackground(save.gameuser.background),
-            PlayerId: save.saveInfo.PlayerId,
+            PlayerId: fCompute.convertRichText(save.saveInfo.PlayerId),
             dan: dan,
         }
 
@@ -181,7 +191,7 @@ export class phib19 extends plugin {
             phi: save_b19.phi,
             b19_list: save_b19.b19_list,
             gameuser,
-            PlayerId: save.saveInfo.PlayerId,
+            PlayerId: gameuser.PlayerId,
             Rks: Number(save.saveInfo.summary.rankingScore).toFixed(4),
             Date: save.saveInfo.updatedAt,
             ChallengeMode: (save.saveInfo.summary.challengeModeRank - (save.saveInfo.summary.challengeModeRank % 100)) / 100,
@@ -192,12 +202,17 @@ export class phib19 extends plugin {
             nnum: nnum,
         }
 
-
         send.send_with_At(e, await altas.b19(e, data))
+
     }
 
     /**arc版查分图 */
     async arcgrosB19(e) {
+
+        if (await getBanGroup.get(e.group_id, 'arcgrosB19')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
 
         let save = await send.getsave_result(e)
         if (!save) {
@@ -210,7 +225,7 @@ export class phib19 extends plugin {
         if (!nnum) { nnum = 29 }
 
         nnum = Math.max(nnum, 19)
-        nnum = Math.min(nnum, Config.getDefOrConfig('config', 'B19MaxNum'))
+        nnum = Math.min(nnum, Config.getUserCfg('config', 'B19MaxNum'))
 
         let save_b19 = await save.getB19(nnum)
 
@@ -231,7 +246,7 @@ export class phib19 extends plugin {
             phi: save_b19.phi,
             b19_list: save_b19.b19_list,
             gameuser,
-            PlayerId: save.saveInfo.PlayerId,
+            PlayerId: fCompute.convertRichText(save.saveInfo.PlayerId),
             Rks: Number(save.saveInfo.summary.rankingScore).toFixed(4),
             Date: save.saveInfo.updatedAt,
             ChallengeMode: (save.saveInfo.summary.challengeModeRank - (save.saveInfo.summary.challengeModeRank % 100)) / 100,
@@ -248,6 +263,9 @@ export class phib19 extends plugin {
     /**获取bestn文字版 */
     async bestn(e) {
 
+        if (await getBanGroup.get(e.group_id, 'bestn')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+        }
 
         const save = await send.getsave_result(e)
 
@@ -303,7 +321,7 @@ export class phib19 extends plugin {
 
         rkslist = rkslist.sort(cmp())
 
-        if (Config.getDefOrConfig('config', 'isGuild')) {
+        if (Config.getUserCfg('config', 'isGuild')) {
             /**频道模式 */
 
             let Remsg = []
@@ -342,9 +360,7 @@ export class phib19 extends plugin {
 
             let Remsg = []
             Remsg.push(`PlayerId: ${save.saveInfo.PlayerId}\nRks: ${Number(save.saveInfo.summary.rankingScore).toFixed(4)}\nChallengeMode: ${ChallengeModeName[(save.saveInfo.summary.challengeModeRank - (save.saveInfo.summary.challengeModeRank % 100)) / 100]}${save.saveInfo.summary.challengeModeRank % 100}\nDate: ${save.saveInfo.updatedAt}`)
-
-
-            if (Config.getDefOrConfig('config', 'WordB19Img')) {
+            if (Config.getUserCfg('config', 'WordB19Img')) {
 
                 if (phi.song) {
                     Remsg.push([`#φ:\n`,
@@ -394,6 +410,12 @@ export class phib19 extends plugin {
 
 
     async singlescore(e) {
+
+        if (await getBanGroup.get(e.group_id, 'singlescore')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         const save = await send.getsave_result(e)
 
         if (!save) {
@@ -406,7 +428,7 @@ export class phib19 extends plugin {
         let song = e.msg.replace(/[#/](.*)(score|单曲成绩)[1-2]?(\s*)/g, '')
 
         if (!song) {
-            send.send_with_At(e, `请指定曲名哦！\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} score <曲名>`)
+            send.send_with_At(e, `请指定曲名哦！\n格式：/${Config.getUserCfg('config', 'cmdhead')} score <曲名>`)
             return true
         }
 
@@ -429,7 +451,7 @@ export class phib19 extends plugin {
         }
 
         if (!ans) {
-            send.send_with_At(e, `我不知道你关于[${song}]的成绩哦！可以试试更新成绩哦！\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} update`)
+            send.send_with_At(e, `我不知道你关于[${song}]的成绩哦！可以试试更新成绩哦！\n格式：/${Config.getUserCfg('config', 'cmdhead')} update`)
             return true
         }
 
@@ -556,6 +578,11 @@ export class phib19 extends plugin {
     /**推分建议，建议的是RKS+0.01的所需值 */
     async suggest(e) {
 
+        if (await getBanGroup.get(e.group_id, 'suggest')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         const save = await send.getsave_result(e)
 
         if (!save) {
@@ -601,14 +628,14 @@ export class phib19 extends plugin {
 
         suggestlist = suggestlist.sort(cmpsugg())
 
-        if (Config.getDefOrConfig('config', 'isGuild')) {
+        if (Config.getUserCfg('config', 'isGuild')) {
             /**频道模式 */
             let Remsg = []
             let tmsg = ''
 
             /**防止消息过长发送失败每条消息10行 */
             let tot = 1
-            tmsg += `PlayerId: ${save.saveInfo.PlayerId} Rks: ${Number(save.saveInfo.summary.rankingScore).toFixed(4)} CLG MOD: ${ChallengeModeName[(save.saveInfo.summary.challengeModeRank - (save.saveInfo.summary.challengeModeRank % 100)) / 100]}${save.saveInfo.summary.challengeModeRank % 100} Date: ${save.saveInfo.updatedAt}`
+            tmsg += `PlayerId: ${fCompute.convertRichText(save.saveInfo.PlayerId, true)} Rks: ${Number(save.saveInfo.summary.rankingScore).toFixed(4)} CLG MOD: ${ChallengeModeName[(save.saveInfo.summary.challengeModeRank - (save.saveInfo.summary.challengeModeRank % 100)) / 100]}${save.saveInfo.summary.challengeModeRank % 100} Date: ${save.saveInfo.updatedAt}`
             for (let i = 0; i < suggestlist.length; ++i) {
                 if (tot <= 10) {
                     tmsg += `\n#${i + 1}: ${suggestlist[i].song}<${suggestlist[i].rank}>${suggestlist[i].difficulty} ${suggestlist[i].acc.toFixed(4)}% -> ${suggestlist[i].suggest}`
@@ -635,7 +662,7 @@ export class phib19 extends plugin {
             let Remsg = []
 
             /**判断是否发图 */
-            if (Config.getDefOrConfig('config', 'WordSuggImg')) {
+            if (Config.getUserCfg('config', 'WordSuggImg')) {
                 for (let i = 0; i < suggestlist.length; ++i) {
                     Remsg.push([`# ${i + 1}: ${suggestlist[i].song}\n`,
                     segment.image(get.getill(suggestlist[i].song, false)),
@@ -661,6 +688,12 @@ export class phib19 extends plugin {
 
     /**查询章节成绩 */
     async chap(e) {
+
+        if (await getBanGroup.get(e.group_id, 'chap')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let save = await send.getsave_result(e)
         if (!save) {
             return false
@@ -671,7 +704,7 @@ export class phib19 extends plugin {
             return true
         }
         if (msg != 'ALL' && !chap[msg]) {
-            send.send_with_At(e, `未找到${msg}章节QAQ！可以使用 /${Config.getDefOrConfig('config', 'cmdhead')} chap help 来查询支持的名称嗷！`)
+            send.send_with_At(e, `未找到${msg}章节QAQ！可以使用 /${Config.getUserCfg('config', 'cmdhead')} chap help 来查询支持的名称嗷！`)
             return false
         }
 

@@ -6,11 +6,14 @@ export const MyGameRecord = {
             createdAt: '2024-08-04T00:15:57.254Z',
             key: 'unknown',
             objectId: 'unknown',
+            updatedAt: '2024 Aug.04 00:19:10',
             url: 'unknown'
         },
         modifiedAt: {
+            __type:'2024 Aug.04 00:19:10',
             iso: '2024-08-04T00:15:57.254Z'
         },
+        objectId: 'Illli',
         summary: {
             updatedAt: '2024 Aug.04 00:19:10',
             saveVersion: 1.0,
@@ -22,13 +25,13 @@ export const MyGameRecord = {
             fullCombo: [1, 6, 86, 12],
             phi: [0, 0, 62, 9]
         },
-        objectId: 'Illli',
         updatedAt: '2024 Aug.04 00:26:50',
         user: {
             __type: "Pointer",
             className: "_User",
             objectId: 'Illli'
-        }
+        },
+        PlayerId:'Illli',
     },
     saveUrl: 'unknown',
     Recordver: 3.8,
@@ -58,6 +61,7 @@ export const MyGameRecord = {
         selfIntro: 'rubbish comes first',
         avatar: 'Introduction',
         background: 'Introduction',
+        CLGMOD:'what is this'
     },
     gameRecord: {
         'Rrharil.TeamGrimoire.0': {
@@ -199,6 +203,18 @@ export const MyGameRecord = {
                 fc: true,
                 score: 998282,
                 acc: 99.81,
+            }
+        },
+        'ATHAZA.LeaF.0':{
+            2: {
+                fc: true,
+                score: 1000000,
+                acc: 100.00,
+            },
+            3: {
+                fc: true,
+                score: 999062,
+                acc: 99.90,
             }
         },
         'Lyrith迷宮リリス.ユメミド.0': {

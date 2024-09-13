@@ -6,6 +6,7 @@ import send from '../model/send.js'
 import getInfo from '../model/getInfo.js'
 import getPic from '../model/getPic.js'
 import fCompute from '../model/fCompute.js'
+import getBanGroup from '../model/getBanGroup.js';
 
 const Level = ['EZ', 'HD', 'IN', 'AT'] //难度映射
 let wait_to_del_list
@@ -21,36 +22,40 @@ export class phisong extends plugin {
             priority: 1000,
             rule: [
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(曲|song).*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(曲|song).*$`,
                     fnc: 'song'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(查找|检索|search).*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(查找|检索|search).*$`,
                     fnc: 'search'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(设置别名|setnic(k?)).*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(设置别名|setnic(k?)).*$`,
                     fnc: 'setnick'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(删除别名|delnic(k?)).*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(删除别名|delnic(k?)).*$`,
                     fnc: 'delnick'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(曲绘|ill|Ill).*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(曲绘|ill|Ill).*$`,
                     fnc: 'ill'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(随机|rand(om)?).*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(随机|rand(om)?).*$`,
                     fnc: 'randmic'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)alias.*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)alias.*$`,
                     fnc: 'alias'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(com|计算).*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(com|计算).*$`,
                     fnc: 'comrks'
+                },
+                {
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)tips$`,
+                    fnc: 'tips'
                 }
             ]
         })
@@ -60,9 +65,15 @@ export class phisong extends plugin {
 
     /**歌曲图鉴 */
     async song(e) {
+
+        if (await getBanGroup.get(e.group_id, 'song')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let msg = e.msg.replace(/[#/](.*)(曲|song)(\s*)/, "")
         if (!msg) {
-            send.send_with_At(e, `请指定曲名哦！\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} song <曲名>`)
+            send.send_with_At(e, `请指定曲名哦！\n格式：/${Config.getUserCfg('config', 'cmdhead')} song <曲名>`)
             return true
         }
         let songs = get.fuzzysongsnick(msg)
@@ -87,6 +98,12 @@ export class phisong extends plugin {
     }
 
     async search(e) {
+
+        if (await getBanGroup.get(e.group_id, 'search')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let msg = e.msg.replace(/[#/](.*)(查找|检索|search)(\s*)/g, "").toLowerCase()
 
         const patterns = {
@@ -131,7 +148,7 @@ export class phisong extends plugin {
             }
         }
 
-        if (Config.getDefOrConfig('config', 'isGuild')) {
+        if (Config.getUserCfg('config', 'isGuild')) {
             let Resmsg = []
             let tot = 0
             let count = 1
@@ -263,9 +280,15 @@ export class phisong extends plugin {
     }
 
     async ill(e) {
+
+        if (await getBanGroup.get(e.group_id, 'ill')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let msg = e.msg.replace(/[#/](.*?)(曲绘|ill|Ill)(\s*)/, "")
         if (!msg) {
-            send.send_with_At(e, `请指定曲名哦！\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} ill <曲名>`)
+            send.send_with_At(e, `请指定曲名哦！\n格式：/${Config.getUserCfg('config', 'cmdhead')} ill <曲名>`)
             return true
         }
         let songs = get.fuzzysongsnick(msg)
@@ -293,6 +316,12 @@ export class phisong extends plugin {
 
     /**随机定级范围内曲目 */
     async randmic(e) {
+
+        if (await getBanGroup.get(e.group_id, 'randmic')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let msg = e.msg.replace(/^[#/](.*)(随机|rand)(\s*)/, "")
         let isask = [1, 1, 1, 1]
 
@@ -313,7 +342,7 @@ export class phisong extends plugin {
         if (rank[0]) {
             if (rank[0].includes('+')) {
                 if (rank[1]) {
-                    send.send_with_At(e, `含有 '+' 的难度不支持指定范围哦！\n/${Config.getDefOrConfig('config', 'cmdhead')} rand <定数>+ <难度(可多选)>`, true)
+                    send.send_with_At(e, `含有 '+' 的难度不支持指定范围哦！\n/${Config.getUserCfg('config', 'cmdhead')} rand <定数>+ <难度(可多选)>`, true)
                     return true
                 } else {
                     rank[0] = Number(rank[0].replace('+', ''))
@@ -323,7 +352,7 @@ export class phisong extends plugin {
             } else if (rank[0].includes('-') && !rank[1]) {
                 rank[0] = Number(rank[0].replace('-', ''))
                 if (rank[0] == NaN) {
-                    send.send_with_At(e, `${rank[0]} 不是一个定级哦\n#/${Config.getDefOrConfig('config', 'cmdhead')} rand <定数>- <难度(可多选)>`, true)
+                    send.send_with_At(e, `${rank[0]} 不是一个定级哦\n#/${Config.getUserCfg('config', 'cmdhead')} rand <定数>- <难度(可多选)>`, true)
                     return true
                 } else {
                     bottom = 0
@@ -334,14 +363,14 @@ export class phisong extends plugin {
                 if (rank[1]) {
                     rank[1] = Number(rank[1])
                     if (Number(rank[0]) == NaN || Number(rank[1]) == NaN) {
-                        send.send_with_At(e, `${rank[0]} - ${rank[1]} 不是一个定级范围哦\n/${Config.getDefOrConfig('config', 'cmdhead')} rand <定数1> - <定数2> <难度(可多选)>`, true)
+                        send.send_with_At(e, `${rank[0]} - ${rank[1]} 不是一个定级范围哦\n/${Config.getUserCfg('config', 'cmdhead')} rand <定数1> - <定数2> <难度(可多选)>`, true)
                         return true
                     }
                     top = Math.max(rank[0], rank[1])
                     bottom = Math.min(rank[0], rank[1])
                 } else {
                     if (rank[0] == NaN) {
-                        send.send_with_At(e, `${rank[0]} 不是一个定级哦\n#/${Config.getDefOrConfig('config', 'cmdhead')} rand <定数> <难度(可多选)>`, true)
+                        send.send_with_At(e, `${rank[0]} 不是一个定级哦\n#/${Config.getUserCfg('config', 'cmdhead')} rand <定数> <难度(可多选)>`, true)
                         return true
                     } else {
                         top = bottom = rank[0]
@@ -386,13 +415,19 @@ export class phisong extends plugin {
     }
 
     /**查询歌曲别名 */
-    alias(e) {
+    async alias(e) {
+
+        if (await getBanGroup.get(e.group_id, 'alias')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let msg = e.msg.replace(/[#/](.*?)alias(\s*)/, "")
         let song = getInfo.idgetsong(msg) || getInfo.fuzzysongsnick(msg)
         if (song[0]) {
             let info = getInfo.info(song[0])
-            let nick = '======================\n'
-            let usernick = Config.getDefOrConfig('nickconfig', song[0])
+            let nick = '======================\n已有别名：\n'
+            let usernick = Config.getUserCfg('nickconfig', song[0])
             for (let i in usernick) {
                 nick += `${usernick[i]}\n`
             }
@@ -406,7 +441,13 @@ export class phisong extends plugin {
     }
 
     /**计算等效rks */
-    comrks(e) {
+    async comrks(e) {
+
+        if (await getBanGroup.get(e.group_id, 'comrks')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let msg = e.msg.replace(/^[#/].*(com|计算)\s*/, '')
         let data = msg.split(' ')
         data[0] = Number(data[0])
@@ -415,9 +456,20 @@ export class phisong extends plugin {
             send.send_with_At(e, `dif: ${data[0]} acc: ${data[1]}\n计算结果：${fCompute.rks(Number(data[1]), Number(data[0]))}`, true)
             return true
         } else {
-            send.send_with_At(e, `格式错误QAQ！\n格式：${Config.getDefOrConfig('config', 'cmdhead')} com <定数> <acc>`)
+            send.send_with_At(e, `格式错误QAQ！\n格式：${Config.getUserCfg('config', 'cmdhead')} com <定数> <acc>`)
             return false
         }
+    }
+
+    /**随机tips */
+    async tips(e) {
+
+        if (await getBanGroup.get(e.group_id, 'tips')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
+        send.send_with_At(e, getInfo.tips[fCompute.randBetween(0, getInfo.tips.length - 1)])
     }
 
 }

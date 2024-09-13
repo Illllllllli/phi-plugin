@@ -5,6 +5,7 @@ import get from '../model/getdata.js'
 import Vika from '../model/Vika.js'
 import { segment } from 'oicq'
 import getSave from '../model/getSave.js'
+import getBanGroup from '../model/getBanGroup.js';
 
 const read = 'https://www.bilibili.com/read/cv27354116'
 const sheet = 'https://f.kdocs.cn/g/fxsg4EM2/'
@@ -25,18 +26,13 @@ export class phiDan extends plugin {
             priority: 1000,
             rule: [
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(Dan|dan)(\\s*)update$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(Dan|dan)(\\s*)update$`,
                     fnc: 'danupdate'
                 },
                 {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(Dan|dan).*$`,
+                    reg: `^[#/](${Config.getUserCfg('config', 'cmdhead')})(\\s*)(Dan|dan).*$`,
                     fnc: 'dan'
-                },
-                {
-                    reg: `^[#/](${Config.getDefOrConfig('config', 'cmdhead')})(\\s*)(sessionToken)$`,
-                    fnc: 'sstk'
-                },
-
+                }
             ]
         })
 
@@ -46,10 +42,16 @@ export class phiDan extends plugin {
         if (!cancanneed) {
             return false
         }
+
+        if (await getBanGroup.get(e.group_id, 'dan')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         let name = e.msg.replace(/[#/].*(dan|Dan)(\s*)/g, '')
         if (!name) {
             let dan = await getSave.getDan(e.user_id, true)
-            if (dan) {
+            if (dan[0]) {
                 let resmsg = [`你的认证段位为`]
                 for (let i in dan) {
                     resmsg.push(`\n${dan[i].Dan.replace('/', ' ')} ${dan[i].EX ? 'EX' : ''}`)
@@ -57,7 +59,7 @@ export class phiDan extends plugin {
                 }
                 send.send_with_At(e, resmsg)
             } else {
-                send.send_with_At(e, [`唔，本地没有你的认证记录哦！如果提交过审核的话，可以试试更新一下嗷！\n格式：/${Config.getDefOrConfig('config', 'cmdhead')} dan update`, word])
+                send.send_with_At(e, [`唔，本地没有你的认证记录哦！如果提交过审核的话，可以试试更新一下嗷！\n格式：/${Config.getUserCfg('config', 'cmdhead')} dan update`, word])
             }
 
             return true
@@ -88,6 +90,12 @@ export class phiDan extends plugin {
         if (!cancanneed) {
             return false
         }
+
+        if (await getBanGroup.get(e.group_id, 'danupdate')) {
+            send.send_with_At(e, '这里被管理员禁止使用这个功能了呐QAQ！')
+            return false
+        }
+
         /**检查是否绑定并提示 */
         let save = await send.getsave_result(e)
         if (!save) {
@@ -120,18 +128,4 @@ export class phiDan extends plugin {
         return true
     }
 
-    async sstk(e) {
-        if (e.isGroup) {
-            send.send_with_At(e, `请私聊使用嗷`)
-            return false
-        }
-
-        let save = await send.getsave_result(e)
-        if (!save) {
-            return true
-        }
-
-        send.send_with_At(e, `sessionToken: ${save.session}\nObjectId: ${save.saveInfo.objectId}\nQQId: ${e.user_id}`)
-
-    }
 }
